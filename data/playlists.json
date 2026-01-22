@@ -1,0 +1,24 @@
+{
+    "my_demo_mix": {
+        "id": "my_demo_mix",
+        "name": "My Demo Mix",
+        "items": [
+            {
+                "type": "script",
+                "filename": "bouncing_ball.py",
+                "duration": 5.0
+            },
+            {
+                "type": "script",
+                "filename": "physics_balls.py",
+                "duration": 10.0
+            },
+            {
+                "type": "clip",
+                "filename": "test.gif",
+                "duration": 10.0
+            }
+        ],
+        "settings": {}
+    }
+}
