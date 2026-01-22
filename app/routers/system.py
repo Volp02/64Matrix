@@ -1,6 +1,10 @@
 from fastapi import APIRouter, Response, HTTPException
 from app.core.state_manager import StateManager
 from app.models.schemas import SystemSettings
+import logging
+import os
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/system", tags=["System"])
 
@@ -20,11 +24,13 @@ from fastapi import Request
 def get_status(request: Request):
     state_manager: StateManager = request.app.state.state_manager
     settings = state_manager.get_settings()
+    lib_mgr = getattr(request.app.state, "library_manager", None)
     
     # Enrich with active scene info
     current_scene = state_manager.get_active_scene()
     active_scene_name = "None"
     active_playlist_id = None
+    active_scene_filename = None
     
     if current_scene:
         # Check if it's a PlaylistScene
@@ -35,14 +41,28 @@ def get_status(request: Request):
              # Get sub-scene info if possible
              sub_scene = current_scene.current_scene_instance
              if sub_scene:
-                 # Try to find filename or class name
-                 active_scene_name = sub_scene.__class__.__name__
+                 # Prefer filename/title for UI, fall back to class name
                  active_scene_filename = getattr(sub_scene, "filename", None)
+                 if lib_mgr and active_scene_filename:
+                     meta = lib_mgr.get_metadata(active_scene_filename) or {}
+                     active_scene_name = meta.get(
+                         "title",
+                         os.path.splitext(active_scene_filename)[0].replace("_", " ").title(),
+                     )
+                 else:
+                     active_scene_name = active_scene_filename or sub_scene.__class__.__name__
              else:
                  active_scene_name = "Loading..."
         else:
-             active_scene_name = current_scene.__class__.__name__
              active_scene_filename = getattr(current_scene, "filename", None)
+             if lib_mgr and active_scene_filename:
+                 meta = lib_mgr.get_metadata(active_scene_filename) or {}
+                 active_scene_name = meta.get(
+                     "title",
+                     os.path.splitext(active_scene_filename)[0].replace("_", " ").title(),
+                 )
+             else:
+                 active_scene_name = active_scene_filename or current_scene.__class__.__name__
 
     # Add to response (requires schema update first!)
     # We return a dict that matches Schema 
@@ -57,17 +77,18 @@ def get_status(request: Request):
 @router.post("/settings")
 def update_settings(request: Request, settings: SystemSettings):
     state_manager: StateManager = request.app.state.state_manager
+    matrix = request.app.state.matrix_driver
     
     # Brightness
-    # brightness is hardware controlled typically, but we store it in state
     state_manager.update_setting("brightness", settings.brightness)
+    # Apply brightness to hardware
+    if matrix:
+        try:
+            matrix.set_brightness(settings.brightness)
+        except Exception as e:
+            logger.error(f"Failed to apply brightness: {e}")
     
     # Speed
     state_manager.update_setting("speed", settings.speed)
-    
-    # Apply hardware brightness if matrix is available?
-    # The MatrixDriver wrapper might need a method to set brightness dynamically if supported
-    # matrix = request.app.state.matrix_driver
-    # matrix.set_brightness(settings.brightness) # Implementation detail for later
     
     return {"status": "ok", "settings": settings}

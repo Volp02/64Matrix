@@ -1,10 +1,12 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, UploadFile, File
 from app.models.schemas import SceneList, SetSceneRequest
 from app.core.state_manager import StateManager
 from app.core.loaders.script_loader import ScriptLoader
 from app.core.loaders.clip_loader import ClipLoader
 import os
-from fastapi import APIRouter, Request, HTTPException, UploadFile, File
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/scenes", tags=["Scenes"])
 
@@ -56,21 +58,52 @@ def list_scenes(request: Request):
 
 @router.post("/activate")
 def activate_scene(request: Request, req: SetSceneRequest):
-    loader: ScriptLoader = request.app.state.script_loader
-    clip_loader: ClipLoader = request.app.state.clip_loader
-    state_manager: StateManager = request.app.state.state_manager
-    
-    # Try to load as script
-    scene = loader.load_script(req.filename)
-    if not scene:
-        # Try to load as clip
-        scene = clip_loader.load_clip(req.filename)
+    try:
+        loader: ScriptLoader = request.app.state.script_loader
+        clip_loader: ClipLoader = request.app.state.clip_loader
+        state_manager: StateManager = request.app.state.state_manager
         
-    if not scene:
-        raise HTTPException(status_code=404, detail="Scene not found or could not load")
-    
-    state_manager.set_scene(scene)
-    return {"status": "ok", "active_scene": req.filename}
+        if not req.filename:
+            raise HTTPException(status_code=400, detail="Filename is required")
+        
+        # Security: Prevent directory traversal
+        if ".." in req.filename or "/" in req.filename or "\\" in req.filename:
+            raise HTTPException(status_code=400, detail="Invalid filename")
+        
+        scene_instance = None
+        
+        # Try to load as script first
+        try:
+            scene_class = loader.load_script(req.filename)
+            if scene_class:
+                scene_instance = loader.get_scene(req.filename)
+        except Exception as e:
+            logger.debug(f"Failed to load as script {req.filename}: {e}")
+        
+        # If script loading failed, try as clip
+        if not scene_instance:
+            try:
+                scene_instance = clip_loader.load_clip(req.filename)
+            except Exception as e:
+                logger.debug(f"Failed to load as clip {req.filename}: {e}")
+        
+        if not scene_instance:
+            raise HTTPException(status_code=404, detail=f"Scene '{req.filename}' not found or could not be loaded")
+        
+        # Set the scene
+        try:
+            state_manager.set_scene(scene_instance)
+            logger.info(f"Activated scene: {req.filename}")
+        except Exception as e:
+            logger.error(f"Failed to activate scene {req.filename}: {e}")
+            raise HTTPException(status_code=500, detail=f"Failed to activate scene: {str(e)}")
+        
+        return {"status": "ok", "active_scene": req.filename}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error activating scene: {e}")
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
 
 @router.delete("/{filename}")
 def delete_scene(filename: str, request: Request):

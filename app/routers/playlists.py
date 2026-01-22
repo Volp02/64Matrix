@@ -57,6 +57,7 @@ async def play_playlist(request: Request, playlist_id: str):
     engine = request.app.state.engine
     state_manager = request.app.state.state_manager
     script_loader = request.app.state.script_loader
+    clip_loader = request.app.state.clip_loader
     
     # Create the scene instance
     # Note: Matrix driver is inside engine...? 
@@ -75,7 +76,7 @@ async def play_playlist(request: Request, playlist_id: str):
     if not matrix:
          raise HTTPException(status_code=500, detail="Matrix driver not found")
 
-    scene = PlaylistScene(matrix, state_manager, playlist_data, script_loader)
+    scene = PlaylistScene(matrix, state_manager, playlist_data, script_loader, clip_loader)
     
     # Activate it
     # We use state_manager.set_scene or engine.set_scene?

@@ -5,10 +5,11 @@ import time
 logger = logging.getLogger(__name__)
 
 class PlaylistScene(BaseScene):
-    def __init__(self, matrix, state_manager, playlist_data, script_loader):
+    def __init__(self, matrix, state_manager, playlist_data, script_loader, clip_loader):
         super().__init__(matrix, state_manager)
         self.playlist_data = playlist_data
         self.script_loader = script_loader
+        self.clip_loader = clip_loader
         self.items = playlist_data.get("items", [])
         
         self.current_index = -1
@@ -29,19 +30,27 @@ class PlaylistScene(BaseScene):
         item = self.items[self.current_index]
         
         filename = item.get("filename")
+        item_type = item.get("type", "script")  # Default to script for backward compatibility
         self.current_item_duration = item.get("duration", 10) # Default 10s
         
-        logger.info(f"Playlist advancing to: {filename} for {self.current_item_duration}s")
+        logger.info(f"Playlist advancing to: {filename} (type: {item_type}) for {self.current_item_duration}s")
         
-        # Load the Scene
-        # Note: We rely on ScriptLoader to give us a fresh instance or class to instantiate
-        # ScriptLoader.get_scene returns an INSTANCE in the current implementation?
-        # Let's check: script_loader.scenes is a dict of filename -> INSTANCE.
-        # Ideally we want a fresh instance but reusing the instance is risky if it keeps state.
-        # For now, we'll try to use the existing instance but call enter/exit.
-        # IF we encounter state issues, we might need ScriptLoader to support factory mode.
+        # Load the Scene based on type
+        scene_instance = None
         
-        scene_instance = self.script_loader.get_scene(filename)
+        try:
+            if item_type == "clip":
+                if self.clip_loader:
+                    scene_instance = self.clip_loader.load_clip(filename)
+                else:
+                    logger.error("Clip loader not available")
+            else:  # Default to script
+                if self.script_loader:
+                    scene_instance = self.script_loader.get_scene(filename)
+                else:
+                    logger.error("Script loader not available")
+        except Exception as e:
+            logger.error(f"Error loading scene {filename} (type: {item_type}): {e}")
         
         if scene_instance:
             # Lifecycle: Exit old
@@ -63,7 +72,7 @@ class PlaylistScene(BaseScene):
             # Reset Timer
             self.time_in_scene = 0
         else:
-            logger.error(f"Playlist could not load scene: {filename}")
+            logger.error(f"Playlist could not load scene: {filename} (type: {item_type})")
             # Failsafe: Try next one immediately to avoid black screen hang
             # But prevent infinite recursion if ALL are bad
             # We'll just wait 1 sec then try again to be safe

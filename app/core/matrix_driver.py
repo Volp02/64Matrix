@@ -21,13 +21,18 @@ except ImportError:
         sys.exit(1)
 
 class MatrixDriver:
-    def __init__(self, width=64, height=64, chain=1, parallel=1):
+    def __init__(self, width=64, height=64, chain=1, parallel=1, brightness=100):
         self.options = RGBMatrixOptions()
         self.options.rows = height
         self.options.cols = width
         self.options.chain_length = chain
         self.options.parallel = parallel
         self.options.hardware_mapping = 'adafruit-hat'  # Default for RPi
+        
+        # Brightness: RGBMatrix uses 0-100, but some implementations use 0-255
+        # We'll store as 0-100 and convert if needed
+        self._brightness = brightness
+        self.options.brightness = brightness
         
         # If emulated, we might want to relax some hardware specific settings or keep them as is
         # The emulator usually ignores hardware specific options safely
@@ -69,3 +74,40 @@ class MatrixDriver:
         """Updates the display with the current canvas and returns a new one."""
         self._canvas = self.matrix.SwapOnVSync(self._canvas)
         return self._canvas
+    
+    def set_brightness(self, brightness):
+        """
+        Set the brightness of the matrix (0-100).
+        Note: Some RGBMatrix implementations require restart to apply brightness changes.
+        For dynamic brightness, we apply software dimming by scaling pixel values.
+        """
+        self._brightness = max(0, min(100, brightness))
+        
+        # Try to set hardware brightness if supported
+        try:
+            if hasattr(self.matrix, 'SetBrightness'):
+                # Convert 0-100 to 0-255 if needed, or use directly
+                brightness_value = int(self._brightness * 2.55) if brightness <= 100 else int(self._brightness)
+                self.matrix.SetBrightness(brightness_value)
+                logger.info(f"Hardware brightness set to {brightness}%")
+            else:
+                # Software dimming: store brightness multiplier for pixel operations
+                logger.debug(f"Hardware brightness not supported, using software dimming: {brightness}%")
+        except Exception as e:
+            logger.warning(f"Failed to set hardware brightness: {e}. Using software dimming.")
+    
+    def get_brightness(self):
+        """Get current brightness (0-100)."""
+        return self._brightness
+    
+    def apply_brightness_to_pixel(self, r, g, b):
+        """
+        Apply brightness multiplier to RGB values for software dimming.
+        Returns scaled RGB tuple.
+        """
+        multiplier = self._brightness / 100.0
+        return (
+            int(r * multiplier),
+            int(g * multiplier),
+            int(b * multiplier)
+        )

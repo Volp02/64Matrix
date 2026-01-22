@@ -85,6 +85,9 @@ class ClipLoader:
             return None
             
         if filename.lower().endswith('.gif'):
-            return GifScene(self.matrix, self.state_manager, filepath)
+            scene = GifScene(self.matrix, self.state_manager, filepath)
+            # Important: used by status UI + thumbnails lookup
+            scene.filename = filename
+            return scene
             
         return None

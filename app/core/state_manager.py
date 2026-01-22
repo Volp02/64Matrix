@@ -32,19 +32,30 @@ class StateManager:
             
     def update_setting(self, key, value):
         with self._lock:
-            if key in self.global_settings:
-                # Update value
-                self.global_settings[key] = value
-                logger.info(f"Setting updated: {key} = {value}")
-                
-                # Persist immediately (or could be debounced)
-                # For now, immediate save is fine for low frequency updates
-                try:
-                    FileOps.save_json(CONFIG_PATH, self.global_settings)
-                except Exception as e:
-                    logger.error(f"Failed to persist settings: {e}")
-            else:
+            if key not in self.global_settings:
                 logger.warning(f"Attempted to update unknown setting: {key}")
+                return False
+            
+            # Validate value ranges
+            if key == "brightness":
+                value = max(0, min(100, int(value)))
+            elif key == "speed":
+                value = max(0.1, min(2.0, float(value)))
+            
+            # Update value
+            old_value = self.global_settings[key]
+            self.global_settings[key] = value
+            logger.info(f"Setting updated: {key} = {old_value} -> {value}")
+            
+            # Persist immediately (or could be debounced)
+            # For now, immediate save is fine for low frequency updates
+            try:
+                FileOps.save_json(CONFIG_PATH, self.global_settings)
+            except Exception as e:
+                logger.error(f"Failed to persist settings: {e}")
+                return False
+            
+            return True
 
     def get_data(self, key=None):
         with self._lock:

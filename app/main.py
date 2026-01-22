@@ -12,7 +12,6 @@ from app.core.state_manager import StateManager
 from app.core.engine import Engine
 from app.core.loaders.script_loader import ScriptLoader
 from app.core.loaders.clip_loader import ClipLoader
-from app.core.loaders.clip_loader import ClipLoader
 from app.core.library_manager import LibraryManager
 from app.core.playlist_manager import PlaylistManager
 
@@ -36,11 +35,15 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("Initializing Core Components...")
     try:
-        matrix = MatrixDriver()
+        # Initialize StateManager first to get config
         state_manager = StateManager()
+        settings = state_manager.get_settings()
+        brightness = settings.get("brightness", 100)
+        
+        # Initialize MatrixDriver with brightness from config
+        matrix = MatrixDriver(brightness=brightness)
         engine = Engine(matrix, state_manager)
         loader = ScriptLoader(matrix, state_manager)
-        clip_loader = ClipLoader(matrix, state_manager)
         clip_loader = ClipLoader(matrix, state_manager)
         library_manager = LibraryManager()
         playlist_manager = PlaylistManager()
@@ -79,7 +82,6 @@ app = FastAPI(title="Lajos Matrix Framework", lifespan=lifespan)
 # Include Routers
 app.include_router(system.router)
 app.include_router(scenes.router)
-app.include_router(integrations.router)
 app.include_router(integrations.router)
 app.include_router(upload.router)
 app.include_router(playlists.router)
