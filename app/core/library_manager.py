@@ -1,6 +1,7 @@
 import json
 import os
 import logging
+from PIL import Image
 from app.utils.file_ops import FileOps
 
 logger = logging.getLogger(__name__)
@@ -54,3 +55,35 @@ class LibraryManager:
             self._save()
             return True
         return False
+    
+    def save_thumbnail(self, filename, image):
+        """
+        Save a thumbnail image for a scene.
+        :param filename: Scene filename
+        :param image: PIL Image object
+        :return: True if successful, False otherwise
+        """
+        try:
+            self.ensure_thumbnails_dir()
+            thumb_dir = os.path.join("scenes", "thumbnails")
+            thumb_path = os.path.join(thumb_dir, f"{filename}.png")
+            
+            # Resize to thumbnail size if needed (128x128 for better quality)
+            if image.size != (128, 128):
+                image = image.resize((128, 128), Image.Resampling.LANCZOS)
+            
+            # Convert to RGB if needed
+            if image.mode != 'RGB':
+                image = image.convert('RGB')
+            
+            image.save(thumb_path, "PNG")
+            logger.info(f"Saved thumbnail for {filename}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to save thumbnail for {filename}: {e}")
+            return False
+    
+    def thumbnail_exists(self, filename):
+        """Check if a thumbnail exists for the given filename."""
+        thumb_path = os.path.join("scenes", "thumbnails", f"{filename}.png")
+        return os.path.exists(thumb_path)

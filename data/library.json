@@ -1,5 +1,8 @@
 {
-    "test.gif": {
-        "title": "Test"
+    "TestNyan Cat.gif": {
+        "title": "Testnyan Cat"
+    },
+    "giphy.gif": {
+        "title": "Giphy"
     }
 }

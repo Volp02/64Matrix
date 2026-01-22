@@ -3,8 +3,11 @@ from app.models.schemas import SceneList, SetSceneRequest
 from app.core.state_manager import StateManager
 from app.core.loaders.script_loader import ScriptLoader
 from app.core.loaders.clip_loader import ClipLoader
+from app.core.engine import Engine
+from app.core.library_manager import LibraryManager
 import os
 import logging
+import threading
 
 logger = logging.getLogger(__name__)
 
@@ -94,6 +97,54 @@ def activate_scene(request: Request, req: SetSceneRequest):
         try:
             state_manager.set_scene(scene_instance)
             logger.info(f"Activated scene: {req.filename}")
+            
+            # Schedule automatic thumbnail generation for scripts if no thumbnail exists
+            lib_mgr: LibraryManager = request.app.state.library_manager
+            engine: Engine = request.app.state.engine
+            
+            # Check if this is a script (not a clip) and has no thumbnail
+            if scene_instance.__class__.__name__ != "GifScene" and not lib_mgr.thumbnail_exists(req.filename):
+                logger.info(f"Scheduling thumbnail capture for script {req.filename} in 15 seconds")
+                
+                def capture_thumbnail():
+                    """Capture thumbnail after 15 seconds if scene is still active."""
+                    try:
+                        # Check if this scene is still active
+                        current_scene = state_manager.get_active_scene()
+                        if current_scene and hasattr(current_scene, 'filename') and current_scene.filename == req.filename:
+                            # Get preview frame from engine
+                            preview_frame = engine.get_preview_frame()
+                            if preview_frame:
+                                # Convert PNG bytes to PIL Image
+                                from PIL import Image
+                                import io
+                                img = Image.open(io.BytesIO(preview_frame))
+                                
+                                # Preview frames are scaled 4x (256x256), scale down to original 64x64
+                                if img.size == (256, 256):
+                                    # Scale down to 64x64 (original matrix size)
+                                    img = img.resize((64, 64), Image.Resampling.NEAREST)
+                                elif img.size != (64, 64):
+                                    # If unexpected size, resize to 64x64
+                                    img = img.resize((64, 64), Image.Resampling.LANCZOS)
+                                
+                                # Save thumbnail (LibraryManager will resize to 128x128 for thumbnail)
+                                if lib_mgr.save_thumbnail(req.filename, img):
+                                    logger.info(f"Auto-generated thumbnail for script {req.filename}")
+                                else:
+                                    logger.warning(f"Failed to save auto-generated thumbnail for {req.filename}")
+                            else:
+                                logger.debug(f"No preview frame available for thumbnail capture of {req.filename}")
+                        else:
+                            logger.debug(f"Scene {req.filename} is no longer active, skipping thumbnail capture")
+                    except Exception as e:
+                        logger.error(f"Error during automatic thumbnail capture for {req.filename}: {e}")
+                
+                # Schedule thumbnail capture after 15 seconds
+                timer = threading.Timer(15.0, capture_thumbnail)
+                timer.daemon = True  # Don't prevent shutdown
+                timer.start()
+            
         except Exception as e:
             logger.error(f"Failed to activate scene {req.filename}: {e}")
             raise HTTPException(status_code=500, detail=f"Failed to activate scene: {str(e)}")

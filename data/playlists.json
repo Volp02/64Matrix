@@ -17,6 +17,11 @@
                 "type": "script",
                 "filename": "physics_balls.py",
                 "duration": 10.0
+            },
+            {
+                "type": "clip",
+                "filename": "200w.gif",
+                "duration": 10.0
             }
         ],
         "settings": {}

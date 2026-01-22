@@ -9,7 +9,6 @@
             <th>Thumb</th>
             <th>Name</th>
             <th>Type</th>
-            <th>Type</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -46,7 +45,6 @@
               </div>
             </td>
             <td>{{ scene.type }}</td>
-            <td>{{ scene.type }}</td>
             <td class="actions">
               <button @click="startRename(scene)">Rename</button>
               <button class="danger" @click="deleteScene(scene.filename)">
@@ -57,6 +55,20 @@
           </tr>
         </tbody>
       </table>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div v-if="showDeleteConfirm" class="modal-overlay" @click.self="cancelDelete">
+      <div class="modal">
+        <h3>Delete scene?</h3>
+        <p class="warning">
+          This will permanently delete <strong>{{ sceneToDelete }}</strong>.
+        </p>
+        <div class="modal-actions">
+          <button class="danger" @click="confirmDelete">Delete</button>
+          <button @click="cancelDelete">Cancel</button>
+        </div>
+      </div>
     </div>
 
     <UploadForm @upload-complete="fetchScenes" />
