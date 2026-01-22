@@ -33,12 +33,8 @@ class PhysicsBalls(BaseScene):
         self.spawn_interval = 1.5 # Slower spawns (was 0.5)
         
     def update(self, dt):
-        # 1. Fetch Global Speed
-        settings = self.state_manager.get_settings()
-        speed_mult = settings.get("speed", 1.0)
-        
-        # Scale dt by speed_mult
-        sim_dt = dt * speed_mult
+        # dt is already scaled by speed_mult from the engine
+        sim_dt = dt
         
         # 2. Spawn Logic
         self.spawn_timer += sim_dt

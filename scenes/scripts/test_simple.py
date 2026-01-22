@@ -16,13 +16,10 @@ class TestSimple(BaseScene):
         self.color = (255, 0, 0)  # Red
         
     def update(self, dt):
-        # Get speed multiplier
-        settings = self.state_manager.get_settings()
-        speed_mult = settings.get("speed", 1.0)
-        
+        # dt is already scaled by speed_mult from the engine
         # Move
-        self.x += self.vx * dt * speed_mult
-        self.y += self.vy * dt * speed_mult
+        self.x += self.vx * dt
+        self.y += self.vy * dt
         
         # Bounce off walls
         if self.x - self.size <= 0 or self.x + self.size >= self.width:
