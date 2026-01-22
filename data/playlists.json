@@ -4,14 +4,9 @@
         "name": "My Demo Mix",
         "items": [
             {
-                "type": "clip",
-                "filename": "test.gif",
-                "duration": 10.0
-            },
-            {
                 "type": "script",
                 "filename": "bouncing_ball.py",
-                "duration": 5.0
+                "duration": 10.0
             },
             {
                 "type": "script",
@@ -20,7 +15,12 @@
             },
             {
                 "type": "clip",
-                "filename": "200w.gif",
+                "filename": "TestNyan Cat.gif",
+                "duration": 10.0
+            },
+            {
+                "type": "clip",
+                "filename": "Huh Cat test.gif",
                 "duration": 10.0
             }
         ],

@@ -5,6 +5,7 @@ from app.core.loaders.script_loader import ScriptLoader
 from app.core.loaders.clip_loader import ClipLoader
 from app.core.engine import Engine
 from app.core.library_manager import LibraryManager
+from app.core.playlist_manager import PlaylistManager
 import os
 import logging
 import threading
@@ -245,8 +246,14 @@ def rename_scene(filename: str, request: Request, payload: dict):
         # Or keep old title? User intent: "Rename". Usually implies changing display name too.
         clean_title = os.path.splitext(new_name)[0].replace("_", " ").title()
         lib_mgr.update_metadata(new_name, title=clean_title)
+        
+        # 4. Update Playlists that reference this scene
+        playlist_mgr: PlaylistManager = request.app.state.playlist_manager
+        updated_playlists = playlist_mgr.update_scene_filename(filename, new_name)
+        if updated_playlists > 0:
+            logger.info(f"Updated {updated_playlists} playlist(s) to reference renamed scene: {new_name}")
 
-        return {"status": "renamed", "old_name": filename, "new_name": new_name}
+        return {"status": "renamed", "old_name": filename, "new_name": new_name, "playlists_updated": updated_playlists}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

@@ -49,3 +49,25 @@ class PlaylistManager:
             self.save_playlists()
             return True
         return False
+    
+    def update_scene_filename(self, old_filename, new_filename):
+        """
+        Update all playlist items that reference old_filename to use new_filename.
+        Returns the number of playlists updated.
+        """
+        updated_count = 0
+        for playlist_id, playlist_data in self.playlists.items():
+            items = playlist_data.get("items", [])
+            updated = False
+            for item in items:
+                if item.get("filename") == old_filename:
+                    item["filename"] = new_filename
+                    updated = True
+            if updated:
+                updated_count += 1
+                logger.info(f"Updated playlist '{playlist_id}' to reference {new_filename} instead of {old_filename}")
+        
+        if updated_count > 0:
+            self.save_playlists()
+        
+        return updated_count
