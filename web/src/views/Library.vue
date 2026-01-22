@@ -2,59 +2,133 @@
   <div class="library">
     <h2>Library</h2>
 
-    <div class="table-container">
-      <table>
-        <thead>
-          <tr>
-            <th>Thumb</th>
-            <th>Name</th>
-            <th>Type</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="scene in scenes" :key="scene.filename">
-            <td class="thumb-cell">
-              <img
-                :src="getThumbUrl(scene.filename)"
-                @error="setFallbackImg"
-                class="thumbnail"
-              />
-              <input
-                type="file"
-                ref="thumbInput"
-                style="display: none"
-                @change="handleThumbUpload($event, scene.filename)"
-              />
-              <button
-                class="icon-btn tiny"
-                @click="triggerThumbUpload(scene.filename)"
-              >
-                ✎
-              </button>
-            </td>
-            <td>
-              <span v-if="editing !== scene.filename">{{ scene.name }}</span>
-              <div v-else class="edit-row">
-                <input
-                  v-model="editName"
-                  @keyup.enter="saveRename(scene.filename)"
-                />
-                <button @click="saveRename(scene.filename)">💾</button>
-                <button @click="cancelEdit">❌</button>
-              </div>
-            </td>
-            <td>{{ scene.type }}</td>
-            <td class="actions">
-              <button @click="startRename(scene)">Rename</button>
-              <button class="danger" @click="deleteScene(scene.filename)">
-                Delete
-              </button>
-              <button @click="activate(scene.filename)">Play</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+    <div class="library-grids">
+      <!-- Clips Grid -->
+      <div class="grid-section">
+        <h3>Clips</h3>
+        <div class="scene-grid">
+          <div
+            v-for="scene in clips"
+            :key="scene.filename"
+            class="scene-card"
+            @click="activate(scene.filename)"
+            @contextmenu.prevent="openContextMenu($event, scene)"
+          >
+            <img
+              :src="getThumbUrl(scene.filename)"
+              @error="setFallbackImg"
+              class="thumbnail"
+            />
+            <div class="scene-name">{{ scene.name }}</div>
+            <button
+              class="menu-btn"
+              @click.stop="openContextMenu($event, scene)"
+              title="Menu"
+            >
+              ⋮
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scripts Grid -->
+      <div class="grid-section">
+        <h3>Scripts</h3>
+        <div class="scene-grid">
+          <div
+            v-for="scene in scripts"
+            :key="scene.filename"
+            class="scene-card"
+            @click="activate(scene.filename)"
+            @contextmenu.prevent="openContextMenu($event, scene)"
+          >
+            <img
+              :src="getThumbUrl(scene.filename)"
+              @error="setFallbackImg"
+              class="thumbnail"
+            />
+            <div class="scene-name">{{ scene.name }}</div>
+            <button
+              class="menu-btn"
+              @click.stop="openContextMenu($event, scene)"
+              title="Menu"
+            >
+              ⋮
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Grid -->
+      <div class="grid-section">
+        <h3>Live</h3>
+        <div class="scene-grid">
+          <div
+            v-for="scene in live"
+            :key="scene.filename"
+            class="scene-card"
+            @click="activate(scene.filename)"
+            @contextmenu.prevent="openContextMenu($event, scene)"
+          >
+            <img
+              :src="getThumbUrl(scene.filename)"
+              @error="setFallbackImg"
+              class="thumbnail"
+            />
+            <div class="scene-name">{{ scene.name }}</div>
+            <button
+              class="menu-btn"
+              @click.stop="openContextMenu($event, scene)"
+              title="Menu"
+            >
+              ⋮
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Context Menu -->
+    <div
+      v-if="showContextMenu"
+      class="context-menu"
+      :style="{ top: contextMenuY + 'px', left: contextMenuX + 'px' }"
+      @click.stop
+    >
+      <button @click="startRename(contextScene)">✏️ Rename</button>
+      <button @click="triggerThumbUpload(contextScene.filename)">
+        🖼️ Change Thumbnail
+      </button>
+      <button class="danger" @click="deleteScene(contextScene.filename)">
+        🗑️ Delete
+      </button>
+    </div>
+
+    <!-- Context Menu Overlay (closes menu on click) -->
+    <div
+      v-if="showContextMenu"
+      class="context-overlay"
+      @click="closeContextMenu"
+    ></div>
+
+    <!-- Edit Name Modal -->
+    <div v-if="editing" class="modal-overlay" @click.self="cancelEdit">
+      <div class="modal">
+        <h3>Rename Scene</h3>
+        <div class="edit-form">
+          <input
+            v-model="editName"
+            @keyup.enter="saveRename(editing)"
+            @keyup.esc="cancelEdit"
+            placeholder="Scene name"
+            autofocus
+          />
+          <div class="modal-actions">
+            <button @click="saveRename(editing)">💾 Save</button>
+            <button @click="cancelEdit">❌ Cancel</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Delete Confirmation Modal -->
@@ -88,13 +162,34 @@ export default {
       editing: null,
       editName: "",
       refreshInterval: null,
+      // Context Menu State
+      showContextMenu: false,
+      contextMenuX: 0,
+      contextMenuY: 0,
+      contextScene: null,
       // Delete Modal State
       showDeleteConfirm: false,
       sceneToDelete: null,
     };
   },
+  computed: {
+    clips() {
+      return this.scenes.filter((s) => s.type === "clip");
+    },
+    scripts() {
+      return this.scenes.filter((s) => s.type === "script");
+    },
+    live() {
+      return this.scenes.filter((s) => s.type === "live");
+    },
+  },
   async mounted() {
     await this.fetchScenes();
+    // Close context menu on outside click
+    document.addEventListener("click", this.closeContextMenu);
+  },
+  beforeUnmount() {
+    document.removeEventListener("click", this.closeContextMenu);
   },
   methods: {
     async fetchScenes() {
@@ -109,13 +204,20 @@ export default {
       return api.getThumbnailUrl(filename);
     },
     setFallbackImg(event) {
-      // Create a colored placeholder with initials? Or just a generic icon
-      event.target.src = "https://placehold.co/60x60/333/888?text=?";
+      event.target.src = "https://placehold.co/120x120/333/888?text=?";
     },
-
-    // Better approach for thumb upload:
+    openContextMenu(event, scene) {
+      this.contextScene = scene;
+      this.contextMenuX = event.clientX;
+      this.contextMenuY = event.clientY;
+      this.showContextMenu = true;
+    },
+    closeContextMenu() {
+      this.showContextMenu = false;
+      this.contextScene = null;
+    },
     triggerThumbUpload(filename) {
-      // We will create a temp input programmatically to keep template clean
+      this.closeContextMenu();
       const input = document.createElement("input");
       input.type = "file";
       input.accept = "image/*";
@@ -126,30 +228,20 @@ export default {
       };
       input.click();
     },
-
     async uploadThumbnail(filename, file) {
       try {
         await api.uploadThumbnail(filename, file);
-        // Force refresh of image? Append timestamp to url
-        // For now just re-fetch scenes (won't fix cache)
-        // We might need to force reload logic in getThumbUrl
         const img = document.querySelector(`img[src*="${filename}"]`);
         if (img) img.src = api.getThumbnailUrl(filename) + "?t=" + Date.now();
-        // Also refresh list to ensure metadata sync if we track thumb existence
         await this.fetchScenes();
       } catch (e) {
         alert("Failed to upload thumbnail: " + e);
       }
     },
-
     startRename(scene) {
+      this.closeContextMenu();
       this.editing = scene.filename;
-      this.editName = scene.name; // Use Display Name for editing
-
-      this.$nextTick(() => {
-        const input = document.querySelector(".edit-row input");
-        if (input) input.focus();
-      });
+      this.editName = scene.name;
     },
     cancelEdit() {
       this.editing = null;
@@ -165,9 +257,8 @@ export default {
         alert("Rename failed: " + e);
       }
     },
-
-    // Delete Flow
     deleteScene(filename) {
+      this.closeContextMenu();
       this.sceneToDelete = filename;
       this.showDeleteConfirm = true;
     },
@@ -186,62 +277,208 @@ export default {
         this.cancelDelete();
       }
     },
-
     async activate(filename) {
       await api.activateScene(filename);
-      // Maybe show toast?
     },
   },
 };
 </script>
 
 <style scoped>
-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: #222;
-  border-radius: 8px;
+.library {
+  padding: 2rem;
 }
 
-th,
-td {
-  padding: 1rem;
-  text-align: left;
-  border-bottom: 1px solid #333;
-}
-
-th {
-  background: #333;
+.library h2 {
+  margin-bottom: 2rem;
   color: #42b883;
 }
 
+.library-grids {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+}
+
+.grid-section h3 {
+  margin-bottom: 1rem;
+  color: #aaa;
+  font-size: 1.2rem;
+}
+
+.scene-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 1rem;
+}
+
+.scene-card {
+  background: #2a2a2a;
+  border-radius: 8px;
+  padding: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 2px solid transparent;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.scene-card:hover {
+  background: #3a3a3a;
+  transform: translateY(-2px);
+  border-color: #42b883;
+}
+
 .thumbnail {
-  width: 50px;
-  height: 50px;
+  width: 100px;
+  height: 100px;
   object-fit: cover;
   border-radius: 4px;
   border: 1px solid #444;
 }
 
-.thumb-cell {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+.scene-name {
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-align: center;
+  color: #fff;
+  word-break: break-word;
+  max-width: 100%;
 }
 
-.tiny {
-  padding: 2px 5px;
-  font-size: 0.8rem;
-  opacity: 0.5;
+.menu-btn {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background: rgba(0, 0, 0, 0.6);
+  border: none;
+  border-radius: 4px;
+  color: white;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  font-size: 1.2rem;
+  line-height: 1;
+  opacity: 0;
+  transition: opacity 0.2s;
 }
-.tiny:hover {
+
+.scene-card:hover .menu-btn {
   opacity: 1;
 }
 
-.actions {
+.menu-btn:hover {
+  background: rgba(0, 0, 0, 0.8);
+}
+
+/* Context Menu */
+.context-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 999;
+}
+
+.context-menu {
+  position: fixed;
+  background: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: 8px;
+  padding: 0.5rem;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  min-width: 180px;
+}
+
+.context-menu button {
+  display: block;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: white;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.2s;
+  font-size: 0.9rem;
+}
+
+.context-menu button:hover {
+  background: #3a3a3a;
+}
+
+.context-menu button.danger {
+  color: #f55;
+}
+
+.context-menu button.danger:hover {
+  background: #422;
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.7);
   display: flex;
-  gap: 0.5rem;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.modal {
+  background: #2a2a2a;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+  text-align: center;
+  border: 1px solid #444;
+  min-width: 300px;
+}
+
+.modal h3 {
+  margin-top: 0;
+  color: #42b883;
+}
+
+.modal .warning {
+  color: #e55;
+  font-size: 0.9rem;
+  margin-bottom: 2rem;
+}
+
+.edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.edit-form input {
+  padding: 0.75rem;
+  background: #1a1a1a;
+  border: 1px solid #444;
+  border-radius: 4px;
+  color: white;
+  font-size: 1rem;
+}
+
+.edit-form input:focus {
+  outline: none;
+  border-color: #42b883;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
 }
 
 button {
@@ -261,52 +498,21 @@ button:hover {
 button.danger {
   background: #842;
 }
+
 button.danger:hover {
   background: #a53;
 }
 
-.edit-row {
-  display: flex;
-  gap: 0.5rem;
+/* Responsive */
+@media (max-width: 1400px) {
+  .library-grids {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
-/* Modal Styles */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.7);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.modal {
-  background: #2a2a2a;
-  padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
-  text-align: center;
-  border: 1px solid #444;
-}
-
-.modal h3 {
-  margin-top: 0;
-  color: #fca;
-}
-
-.modal .warning {
-  color: #e55;
-  font-size: 0.9rem;
-  margin-bottom: 2rem;
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: center;
-  gap: 1rem;
+@media (max-width: 1024px) {
+  .library-grids {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

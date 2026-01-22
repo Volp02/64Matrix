@@ -80,5 +80,22 @@ export default {
   },
   selectPalette(id) {
     return apiClient.post(`/palettes/${id}/select`);
+  },
+  // App Settings
+  getAppSettings() {
+    return apiClient.get("/settings/");
+  },
+  getAppSettingCategory(category) {
+    return apiClient.get(`/settings/${category}`);
+  },
+  updateAppSettings(category, settings) {
+    return apiClient.put(`/settings/${category}`, settings);
+  },
+  updateAppSetting(category, key, value) {
+    return apiClient.put(`/settings/${category}/${key}`, value, {
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
   }
 };

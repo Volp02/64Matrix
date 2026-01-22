@@ -51,5 +51,199 @@
         ],
         "settings": {},
         "default_palette": "ocean"
+    },
+    "all_scenes": {
+        "id": "all_scenes",
+        "name": "All Scenes",
+        "items": [
+            {
+                "type": "script",
+                "filename": "aurora.py",
+                "duration": 10.0,
+                "palette": null
+            },
+            {
+                "type": "script",
+                "filename": "double_pendulum.py",
+                "duration": 10.0,
+                "palette": null
+            },
+            {
+                "type": "script",
+                "filename": "falling_sand.py",
+                "duration": 10.0,
+                "palette": null
+            },
+            {
+                "type": "script",
+                "filename": "fireworks.py",
+                "duration": 10.0,
+                "palette": null
+            },
+            {
+                "type": "script",
+                "filename": "fire_opus.py",
+                "duration": 10.0,
+                "palette": null
+            },
+            {
+                "type": "script",
+                "filename": "growing_plants.py",
+                "duration": 10.0,
+                "palette": null
+            },
+            {
+                "type": "script",
+                "filename": "kaleidoscope.py",
+                "duration": 10.0,
+                "palette": null
+            },
+            {
+                "type": "script",
+                "filename": "liquid.py",
+                "duration": 10.0,
+                "palette": null
+            },
+            {
+                "type": "script",
+                "filename": "mandelbrot_zoom.py",
+                "duration": 10.0,
+                "palette": null
+            },
+            {
+                "type": "script",
+                "filename": "nebula.py",
+                "duration": 10.0,
+                "palette": null
+            },
+            {
+                "type": "script",
+                "filename": "particle_swarm.py",
+                "duration": 10.0,
+                "palette": null
+            },
+            {
+                "type": "script",
+                "filename": "physics_balls.py",
+                "duration": 10.0,
+                "palette": null
+            },
+            {
+                "type": "script",
+                "filename": "plasma.py",
+                "duration": 10.0,
+                "palette": null
+            },
+            {
+                "type": "script",
+                "filename": "rain.py",
+                "duration": 10.0,
+                "palette": null
+            },
+            {
+                "type": "script",
+                "filename": "satellite_orbit.py",
+                "duration": 10.0,
+                "palette": null
+            },
+            {
+                "type": "script",
+                "filename": "snake_game.py",
+                "duration": 10.0,
+                "palette": null
+            },
+            {
+                "type": "script",
+                "filename": "test_simple.py",
+                "duration": 10.0,
+                "palette": null
+            },
+            {
+                "type": "script",
+                "filename": "warp_speed.py",
+                "duration": 10.0,
+                "palette": null
+            },
+            {
+                "type": "script",
+                "filename": "wave_interference.py",
+                "duration": 10.0,
+                "palette": null
+            },
+            {
+                "type": "clip",
+                "filename": "Cat.gif",
+                "duration": 10.0,
+                "palette": null
+            },
+            {
+                "type": "clip",
+                "filename": "Dancing Duck.gif",
+                "duration": 10.0,
+                "palette": null
+            },
+            {
+                "type": "clip",
+                "filename": "ezgif-248b0612558dc77d.gif",
+                "duration": 10.0,
+                "palette": null
+            },
+            {
+                "type": "clip",
+                "filename": "Fish.gif",
+                "duration": 10.0,
+                "palette": null
+            },
+            {
+                "type": "clip",
+                "filename": "Girl.gif",
+                "duration": 10.0,
+                "palette": null
+            },
+            {
+                "type": "clip",
+                "filename": "Gril2.gif",
+                "duration": 10.0,
+                "palette": null
+            },
+            {
+                "type": "clip",
+                "filename": "Hologram.gif",
+                "duration": 10.0,
+                "palette": null
+            },
+            {
+                "type": "clip",
+                "filename": "Huh Cat test.gif",
+                "duration": 10.0,
+                "palette": null
+            },
+            {
+                "type": "clip",
+                "filename": "Nebula.gif",
+                "duration": 10.0,
+                "palette": null
+            },
+            {
+                "type": "clip",
+                "filename": "Nyan Cat.gif",
+                "duration": 10.0,
+                "palette": null
+            },
+            {
+                "type": "clip",
+                "filename": "Ocean.gif",
+                "duration": 10.0,
+                "palette": null
+            },
+            {
+                "type": "clip",
+                "filename": "Spotify.gif",
+                "duration": 10.0,
+                "palette": null
+            }
+        ],
+        "settings": {},
+        "default_palette": null
     }
 }

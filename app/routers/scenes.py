@@ -29,10 +29,12 @@ def list_scenes(request: Request):
     for s in scripts:
         meta = lib_mgr.get_metadata(s)
         display_name = meta.get("title", s.replace(".py", "").replace("_", " ").title())
+        # Check if scene has a custom type (e.g., "live" for Home Assistant animations)
+        scene_type = meta.get("type", "script")
         scene_items.append({
             "filename": s,
             "name": display_name,
-            "type": "script"
+            "type": scene_type
         })
         
     for c in clips:

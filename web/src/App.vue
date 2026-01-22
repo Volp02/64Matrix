@@ -7,6 +7,7 @@
         <router-link to="/library">Library</router-link>
         <router-link to="/playlists">Playlists</router-link>
         <router-link to="/palettes">Palettes</router-link>
+        <router-link to="/settings">Settings</router-link>
       </nav>
     </header>
 
@@ -31,9 +32,15 @@ body {
 }
 
 .app-container {
-  max-width: 800px;
+  width: 100%;
   margin: 0 auto;
   padding: 2rem;
+}
+
+@media (max-width: 1024px) {
+  .app-container {
+    max-width: 800px;
+  }
 }
 
 header {
