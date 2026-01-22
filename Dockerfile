@@ -22,8 +22,15 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     build-essential \
     python3-dev \
-    curl \
+    git \
+    cython3 \
     && rm -rf /var/lib/apt/lists/*
+
+# Install rpi-rgb-led-matrix manually (required for hardware control)
+RUN git clone https://github.com/hzeller/rpi-rgb-led-matrix.git /opt/rpi-rgb-led-matrix \
+    && cd /opt/rpi-rgb-led-matrix/bindings/python \
+    && make build-python PYTHON=$(which python3) \
+    && make install-python PYTHON=$(which python3)
 
 # Copy Python requirements
 COPY requirements.txt .
