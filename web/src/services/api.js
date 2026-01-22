@@ -45,6 +45,10 @@ export default {
   getThumbnailUrl(filename) {
      return `/api/scenes/thumbnails/${filename}`;
   },
+  getPreviewUrl() {
+    // Add timestamp to prevent caching
+    return `/api/system/preview?t=${Date.now()}`;
+  },
   // Playlists
   getPlaylists() {
     return apiClient.get("/playlists/");

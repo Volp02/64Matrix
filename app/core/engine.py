@@ -1,6 +1,8 @@
 import time
 import logging
 import threading
+import io
+from PIL import Image
 
 logger = logging.getLogger(__name__)
 
@@ -11,6 +13,12 @@ class Engine:
         self._running = False
         self._target_fps = 30
         self._frame_duration = 1.0 / self._target_fps
+        
+        # Preview frame capture
+        self._preview_lock = threading.Lock()
+        self._latest_preview_frame = None  # PNG bytes
+        self._last_capture_time = 0
+        self._preview_capture_interval = 0.2  # Capture every 200ms (5 FPS)
 
     def start(self):
         """Starts the render loop in the current thread (blocking) or separate thread."""
@@ -63,7 +71,10 @@ class Engine:
                         
                         scene.draw(self.matrix.canvas)
                         
-                        # 4. Swap Hardware Buffers
+                        # 4. Capture preview frame BEFORE swap (capture what we just drew)
+                        self._maybe_capture_preview()
+                        
+                        # 5. Swap Hardware Buffers
                         self.matrix.swap_canvas()
                         
                         # Reset error count on successful frame
@@ -107,6 +118,37 @@ class Engine:
                 # Prevent complete crash, but log heavily
                 time.sleep(1)
 
+    def _maybe_capture_preview(self):
+        """Capture a preview frame if enough time has passed since last capture."""
+        current_time = time.time()
+        if current_time - self._last_capture_time >= self._preview_capture_interval:
+            try:
+                # Capture frame from matrix
+                img = self.matrix.capture_frame()
+                if img:
+                    # Convert to PNG bytes
+                    buffer = io.BytesIO()
+                    # Scale up for better visibility (e.g., 4x = 256x256)
+                    scaled = img.resize((img.width * 4, img.height * 4), Image.Resampling.NEAREST)
+                    scaled.save(buffer, format='PNG')
+                    png_bytes = buffer.getvalue()
+                    
+                    # Store latest frame (thread-safe)
+                    with self._preview_lock:
+                        self._latest_preview_frame = png_bytes
+                    
+                    self._last_capture_time = current_time
+            except Exception as e:
+                logger.debug(f"Failed to capture preview frame: {e}")
+    
+    def get_preview_frame(self):
+        """
+        Get the latest captured preview frame as PNG bytes.
+        Returns bytes or None if no frame available.
+        """
+        with self._preview_lock:
+            return self._latest_preview_frame
+    
     def run_threaded(self):
         thread = threading.Thread(target=self.start, daemon=True)
         thread.start()

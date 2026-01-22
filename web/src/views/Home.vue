@@ -21,6 +21,20 @@
         </div>
       </div>
     </div>
+    
+    <!-- Live Preview Section -->
+    <div class="preview-card">
+      <h3>Live Preview</h3>
+      <div class="preview-container">
+        <img
+          :src="previewUrl"
+          class="preview-image"
+          @error="handlePreviewError"
+          alt="Matrix Display Preview"
+        />
+      </div>
+    </div>
+    
     <SystemControls :settings="settings" @update="updateSettings" />
   </div>
 </template>
@@ -39,18 +53,34 @@ export default {
       settings: { brightness: 100, speed: 1.0 },
       status: { active_scene: null, active_playlist: null },
       pollInterval: null,
+      previewInterval: null,
+      previewUrl: api.getPreviewUrl(),
     };
   },
   async mounted() {
     await this.refresh();
     this.pollInterval = setInterval(this.refresh, 2000);
+    // Update preview more frequently (every 200ms for smooth animation)
+    this.previewInterval = setInterval(() => {
+      this.previewUrl = api.getPreviewUrl();
+    }, 200);
   },
   beforeUnmount() {
     clearInterval(this.pollInterval);
+    if (this.previewInterval) {
+      clearInterval(this.previewInterval);
+    }
   },
   methods: {
     getThumb(filename) {
       return api.getThumbnailUrl(filename);
+    },
+    handlePreviewError(event) {
+      // If preview fails, try to reload after a short delay
+      console.warn("Preview image failed to load, retrying...");
+      setTimeout(() => {
+        this.previewUrl = api.getPreviewUrl();
+      }, 500);
     },
     async refresh() {
       try {
@@ -123,5 +153,37 @@ export default {
 .value {
   font-weight: bold;
   color: #fff;
+}
+
+.preview-card {
+  background: #2a2a2a;
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 1px solid #444;
+}
+
+.preview-card h3 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: #42b883;
+}
+
+.preview-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #1a1a1a;
+  border-radius: 4px;
+  padding: 1rem;
+  border: 2px solid #444;
+}
+
+.preview-image {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
 }
 </style>

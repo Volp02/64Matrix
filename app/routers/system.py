@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Response, HTTPException
 from app.core.state_manager import StateManager
 from app.models.schemas import SystemSettings
+from app.core.engine import Engine
 import logging
 import os
+import io
 
 logger = logging.getLogger(__name__)
 
@@ -92,3 +94,32 @@ def update_settings(request: Request, settings: SystemSettings):
     state_manager.update_setting("speed", settings.speed)
     
     return {"status": "ok", "settings": settings}
+
+@router.get("/preview")
+def get_preview(request: Request):
+    """
+    Get the latest preview frame as a PNG image.
+    Returns a PNG image that can be displayed in the browser.
+    """
+    try:
+        engine: Engine = request.app.state.engine
+        preview_frame = engine.get_preview_frame()
+        
+        if preview_frame is None:
+            # Return a placeholder/blank image if no frame available yet
+            from PIL import Image
+            blank_img = Image.new('RGB', (64, 64), color='black')
+            buffer = io.BytesIO()
+            blank_img.resize((256, 256), Image.Resampling.NEAREST).save(buffer, format='PNG')
+            preview_frame = buffer.getvalue()
+        
+        return Response(content=preview_frame, media_type="image/png")
+    except Exception as e:
+        logger.error(f"Error serving preview frame: {e}")
+        # Return a small error image
+        from PIL import Image
+        import io
+        error_img = Image.new('RGB', (64, 64), color='red')
+        buffer = io.BytesIO()
+        error_img.resize((256, 256), Image.Resampling.NEAREST).save(buffer, format='PNG')
+        return Response(content=buffer.getvalue(), media_type="image/png")
