@@ -1,0 +1,6 @@
+{
+    "display_adapter": "pygame",
+    "rows": 64,
+    "cols": 64,
+    "pixel_size": 4
+}
