@@ -66,6 +66,13 @@ def get_status(request: Request):
              else:
                  active_scene_name = active_scene_filename or current_scene.__class__.__name__
 
+    # Get selected palette info
+    selected_palette_id = settings.get("selected_palette", "aurora")
+    palette_mgr = getattr(request.app.state, "palette_manager", None)
+    selected_palette = None
+    if palette_mgr:
+        selected_palette = palette_mgr.get_palette(selected_palette_id)
+    
     # Add to response (requires schema update first!)
     # We return a dict that matches Schema 
     return {
@@ -73,7 +80,9 @@ def get_status(request: Request):
         "speed": settings.get("speed", 1.0),
         "active_scene": active_scene_name,
         "active_playlist": active_playlist_id,
-        "active_scene_filename": active_scene_filename
+        "active_scene_filename": active_scene_filename,
+        "selected_palette": selected_palette_id,
+        "selected_palette_data": selected_palette
     }
 
 @router.post("/settings")
@@ -92,6 +101,10 @@ def update_settings(request: Request, settings: SystemSettings):
     
     # Speed
     state_manager.update_setting("speed", settings.speed)
+    
+    # Selected Palette (if provided)
+    if hasattr(settings, 'selected_palette') and settings.selected_palette:
+        state_manager.update_setting("selected_palette", settings.selected_palette)
     
     return {"status": "ok", "settings": settings}
 

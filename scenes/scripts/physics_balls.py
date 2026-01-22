@@ -157,13 +157,32 @@ class PhysicsBalls(BaseScene):
         x = random.randint(radius, self.width - radius)
         y = -radius * 2 
         
-        r = random.randint(50, 255)
-        g = random.randint(50, 255)
-        b = random.randint(50, 255)
+        # Get colors from selected palette
+        # Try to get palette colors from state_manager
+        palette_colors = None
+        try:
+            # Access palette manager through state_manager's private reference
+            palette_mgr = getattr(self.state_manager, '_palette_manager', None)
+            if palette_mgr:
+                palette_colors = self.state_manager.get_palette_colors(palette_mgr)
+        except Exception as e:
+            # If palette access fails, fall back to random colors
+            pass
+        
+        if palette_colors and len(palette_colors) > 0:
+            # Use random color from palette
+            color = random.choice(palette_colors)
+        else:
+            # Fallback to random colors if no palette available
+            color = (
+                random.randint(50, 255),
+                random.randint(50, 255),
+                random.randint(50, 255)
+            )
         
         life = random.uniform(8.0, 15.0) # Longer life for more interactions
         
-        self.balls.append(Ball(x, y, radius, (r, g, b), life))
+        self.balls.append(Ball(x, y, radius, color, life))
 
     def draw(self, canvas):
         # Clear handled by engine

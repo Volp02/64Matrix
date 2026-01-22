@@ -7,6 +7,8 @@ class SystemSettings(BaseModel):
     active_scene: Optional[str] = None
     active_playlist: Optional[str] = None
     active_scene_filename: Optional[str] = None
+    selected_palette: Optional[str] = None
+    selected_palette_data: Optional[Dict[str, Any]] = None
 
 class SceneItem(BaseModel):
     filename: str

@@ -6,6 +6,7 @@
         <router-link to="/">Dashboard</router-link>
         <router-link to="/library">Library</router-link>
         <router-link to="/playlists">Playlists</router-link>
+        <router-link to="/palettes">Palettes</router-link>
       </nav>
     </header>
 

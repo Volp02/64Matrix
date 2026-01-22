@@ -61,5 +61,24 @@ export default {
   },
   playPlaylist(id) {
     return apiClient.post(`/playlists/${id}/play`);
+  },
+  // Palettes
+  getPalettes() {
+    return apiClient.get("/palettes/");
+  },
+  getPalette(id) {
+    return apiClient.get(`/palettes/${id}`);
+  },
+  createPalette(palette) {
+    return apiClient.post("/palettes/", palette);
+  },
+  updatePalette(id, palette) {
+    return apiClient.put(`/palettes/${id}`, palette);
+  },
+  deletePalette(id) {
+    return apiClient.delete(`/palettes/${id}`);
+  },
+  selectPalette(id) {
+    return apiClient.post(`/palettes/${id}/select`);
   }
 };

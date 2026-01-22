@@ -12,12 +12,14 @@ class PlaylistItem(BaseModel):
     type: str = "script" # script, clip
     filename: str
     duration: float = 10.0
+    palette: Optional[str] = None  # Optional palette ID for this item (script scenes only)
 
 class PlaylistModel(BaseModel):
     id: str
     name: str
     items: List[PlaylistItem]
     settings: Optional[dict] = {}
+    default_palette: Optional[str] = None  # Default palette for the playlist
 
 class CreatePlaylistRequest(BaseModel):
     name: str
@@ -31,7 +33,12 @@ async def get_playlists(request: Request):
 @router.post("/")
 async def save_playlist(request: Request, playlist: PlaylistModel):
     manager = request.app.state.playlist_manager
-    saved = manager.save_playlist(playlist.id, playlist.dict())
+    # Convert to dict and ensure all fields are present
+    playlist_dict = playlist.dict()
+    # Ensure settings exists (for backward compatibility)
+    if "settings" not in playlist_dict:
+        playlist_dict["settings"] = {}
+    saved = manager.save_playlist(playlist.id, playlist_dict)
     return {"status": "ok", "playlist": saved}
 
 @router.delete("/{playlist_id}")

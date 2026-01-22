@@ -14,7 +14,8 @@ class StateManager:
         # Load Global Settings
         defaults = {
             "brightness": 100,  # 0-100
-            "speed": 1.0        # Multiplier
+            "speed": 1.0,       # Multiplier
+            "selected_palette": "aurora"  # Default color palette ID
         }
         loaded = FileOps.load_json(CONFIG_PATH, defaults)
         # Merge loaded with defaults to ensure all keys exist
@@ -94,4 +95,33 @@ class StateManager:
         # Ideally, we return a reference. If the engine uses it, we hope it doesn't get swapped OUT from under it mid-frame.
         # However, Python variable assignment is atomic.
         return self.active_scene
+    
+    def get_palette_colors(self, palette_manager=None):
+        """
+        Get colors from the selected palette.
+        Returns a list of RGB tuples [(r, g, b), ...] or None if palette not found.
+        """
+        with self._lock:
+            palette_id = self.global_settings.get("selected_palette", "aurora")
+        
+        if palette_manager:
+            palette = palette_manager.get_palette(palette_id)
+            if palette and "colors" in palette:
+                # Convert hex colors to RGB tuples
+                colors = []
+                for hex_color in palette["colors"]:
+                    try:
+                        # Remove # if present
+                        hex_color = hex_color.lstrip("#")
+                        # Convert to RGB
+                        r = int(hex_color[0:2], 16)
+                        g = int(hex_color[2:4], 16)
+                        b = int(hex_color[4:6], 16)
+                        colors.append((r, g, b))
+                    except (ValueError, IndexError):
+                        logger.warning(f"Invalid color format in palette: {hex_color}")
+                        continue
+                return colors if colors else None
+        
+        return None
 

@@ -12,6 +12,21 @@
             <span class="label">Scene:</span>
             <span class="value">{{ status.active_scene }}</span>
           </div>
+          <div class="status-row" v-if="status.selected_palette_data">
+            <span class="label">Palette:</span>
+            <span class="value">{{ status.selected_palette_data.name }}</span>
+          </div>
+        </div>
+        <div class="palette-preview-col" v-if="status.selected_palette_data">
+          <div class="palette-mini-preview">
+            <div
+              v-for="(color, idx) in status.selected_palette_data.colors"
+              :key="idx"
+              class="mini-swatch"
+              :style="{ backgroundColor: color }"
+              :title="color"
+            ></div>
+          </div>
         </div>
         <div class="thumb-col" v-if="status.active_scene_filename">
           <img
@@ -51,7 +66,12 @@ export default {
   data() {
     return {
       settings: { brightness: 100, speed: 1.0 },
-      status: { active_scene: null, active_playlist: null },
+      status: { 
+        active_scene: null, 
+        active_playlist: null,
+        selected_palette: null,
+        selected_palette_data: null
+      },
       pollInterval: null,
       previewInterval: null,
       previewUrl: api.getPreviewUrl(),
@@ -121,6 +141,7 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 1rem;
 }
 
 .thumb-col img {
@@ -185,5 +206,25 @@ export default {
   height: auto;
   border-radius: 4px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.palette-preview-col {
+  display: flex;
+  align-items: center;
+}
+
+.palette-mini-preview {
+  display: flex;
+  gap: 2px;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid #555;
+  height: 40px;
+}
+
+.mini-swatch {
+  width: 20px;
+  min-width: 20px;
+  height: 100%;
 }
 </style>

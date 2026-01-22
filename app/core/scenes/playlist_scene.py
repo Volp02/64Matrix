@@ -12,10 +12,20 @@ class PlaylistScene(BaseScene):
         self.clip_loader = clip_loader
         self.items = playlist_data.get("items", [])
         
+        # Get default palette from playlist settings
+        self.default_palette = playlist_data.get("default_palette")
+        
+        # Get palette manager reference
+        self.palette_manager = getattr(state_manager, '_palette_manager', None)
+        
         self.current_index = -1
         self.current_scene_instance = None
         self.time_in_scene = 0
         self.current_item_duration = 0
+        
+        # Apply default palette if set
+        if self.default_palette:
+            self._apply_palette(self.default_palette)
         
         # Start the first item
         self.advance_scene()
@@ -62,6 +72,15 @@ class PlaylistScene(BaseScene):
 
             self.current_scene_instance = scene_instance
             
+            # Apply palette for this item (if it's a script and has a palette specified)
+            item_palette = item.get("palette")
+            if item_type == "script" and item_palette:
+                # Use item-specific palette
+                self._apply_palette(item_palette)
+            elif item_type == "script" and self.default_palette:
+                # Use default playlist palette
+                self._apply_palette(self.default_palette)
+            
             # Lifecycle: Enter new
             if hasattr(self.current_scene_instance, 'enter'):
                 try:
@@ -100,3 +119,14 @@ class PlaylistScene(BaseScene):
                 self.current_scene_instance.draw(canvas)
             except Exception as e:
                 logger.error(f"Error drawing sub-scene: {e}")
+    
+    def _apply_palette(self, palette_id):
+        """Apply a palette to the state manager."""
+        if self.palette_manager:
+            palette = self.palette_manager.get_palette(palette_id)
+            if palette:
+                try:
+                    self.state_manager.update_setting("selected_palette", palette_id)
+                    logger.info(f"Applied palette '{palette_id}' to playlist scene")
+                except Exception as e:
+                    logger.error(f"Failed to apply palette {palette_id}: {e}")

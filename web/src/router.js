@@ -6,6 +6,7 @@ const routes = [
   { path: '/', component: Home },
   { path: '/library', component: Library },
   { path: '/playlists', component: () => import('./views/Playlists.vue') },
+  { path: '/palettes', component: () => import('./views/ColorPalettes.vue') },
   {
     path: "/editor/:id?",
     name: "Editor",

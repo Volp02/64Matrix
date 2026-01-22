@@ -6,6 +6,30 @@
         placeholder="Playlist Name"
         class="name-input"
       />
+      <div class="palette-selector">
+        <label>Default Palette:</label>
+        <select v-model="defaultPalette" class="palette-select">
+          <option value="">None (use global)</option>
+          <optgroup label="Default Palettes">
+            <option
+              v-for="palette in defaultPalettes"
+              :key="palette.id"
+              :value="palette.id"
+            >
+              {{ palette.name }}
+            </option>
+          </optgroup>
+          <optgroup label="Custom Palettes" v-if="customPalettes.length > 0">
+            <option
+              v-for="palette in customPalettes"
+              :key="palette.id"
+              :value="palette.id"
+            >
+              {{ palette.name }}
+            </option>
+          </optgroup>
+        </select>
+      </div>
       <div class="actions">
         <button @click="savePlaylist" class="save-btn">💾 Save Playlist</button>
         <button @click="$router.push('/library')" class="cancel-btn">
@@ -61,6 +85,30 @@
                 min="1"
                 class="duration-input"
               />
+              <div v-if="item.type === 'script'" class="palette-selector-inline">
+                <label>Palette:</label>
+                <select v-model="item.palette" class="palette-select-small">
+                  <option value="">Default</option>
+                  <optgroup label="Default">
+                    <option
+                      v-for="palette in defaultPalettes"
+                      :key="palette.id"
+                      :value="palette.id"
+                    >
+                      {{ palette.name }}
+                    </option>
+                  </optgroup>
+                  <optgroup label="Custom" v-if="customPalettes.length > 0">
+                    <option
+                      v-for="palette in customPalettes"
+                      :key="palette.id"
+                      :value="palette.id"
+                    >
+                      {{ palette.name }}
+                    </option>
+                  </optgroup>
+                </select>
+              </div>
               <div class="order-controls">
                 <button @click="moveItem(index, -1)" :disabled="index === 0">
                   ▲
@@ -89,8 +137,11 @@ export default {
     return {
       playlistId: null, // If editing existing
       playlistName: "My New Playlist",
-      items: [], // { filename, type, duration, name... }
+      items: [], // { filename, type, duration, name, palette... }
       availableScenes: [],
+      defaultPalette: "", // Default palette for the playlist
+      defaultPalettes: [],
+      customPalettes: [],
     };
   },
   computed: {
@@ -100,6 +151,7 @@ export default {
   },
   async mounted() {
     await this.fetchScenes();
+    await this.fetchPalettes();
     const id = this.$route.params.id;
     if (id) {
       await this.loadPlaylist(id);
@@ -114,7 +166,15 @@ export default {
         if (pl) {
           this.playlistId = pl.id;
           this.playlistName = pl.name;
-          this.items = pl.items.map((i) => ({ ...i })); // Clone
+          // Clone items and ensure palette field exists (for backward compatibility)
+          this.items = pl.items.map((i) => ({
+            filename: i.filename,
+            type: i.type,
+            duration: i.duration || 10,
+            name: i.name || i.filename,
+            palette: i.palette || "", // Default to empty string if not present
+          }));
+          this.defaultPalette = pl.default_palette || "";
         }
       } catch (e) {
         console.error("Failed to load playlist", e);
@@ -128,6 +188,15 @@ export default {
         console.error("Failed to load scenes", e);
       }
     },
+    async fetchPalettes() {
+      try {
+        const res = await api.getPalettes();
+        this.defaultPalettes = Object.values(res.data.default || {});
+        this.customPalettes = Object.values(res.data.custom || {});
+      } catch (e) {
+        console.error("Failed to load palettes", e);
+      }
+    },
 
     addItem(scene) {
       this.items.push({
@@ -135,6 +204,7 @@ export default {
         type: scene.type,
         name: scene.name,
         duration: 10, // Default
+        palette: "", // No palette by default (uses playlist default or global)
       });
     },
 
@@ -176,7 +246,10 @@ export default {
           filename: i.filename,
           type: i.type,
           duration: i.duration,
+          palette: i.type === "script" ? (i.palette && i.palette.trim() ? i.palette : null) : null, // Only include palette for scripts, convert empty string to null
         })),
+        default_palette: this.defaultPalette && this.defaultPalette.trim() ? this.defaultPalette : null,
+        settings: {}, // Include settings for compatibility
       };
 
       try {
@@ -206,6 +279,49 @@ export default {
   padding: 1rem;
   border-radius: 8px;
   margin-bottom: 1rem;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.palette-selector {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.palette-selector label {
+  color: #ccc;
+  font-size: 0.9rem;
+}
+
+.palette-select {
+  background: #333;
+  border: 1px solid #444;
+  color: white;
+  padding: 0.5rem;
+  border-radius: 4px;
+  min-width: 150px;
+}
+
+.palette-selector-inline {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.palette-selector-inline label {
+  color: #aaa;
+  font-size: 0.85rem;
+}
+
+.palette-select-small {
+  background: #444;
+  border: 1px solid #555;
+  color: white;
+  padding: 2px 5px;
+  border-radius: 2px;
+  font-size: 0.85rem;
+  min-width: 100px;
 }
 
 .name-input {

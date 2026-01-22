@@ -14,9 +14,10 @@ from app.core.loaders.script_loader import ScriptLoader
 from app.core.loaders.clip_loader import ClipLoader
 from app.core.library_manager import LibraryManager
 from app.core.playlist_manager import PlaylistManager
+from app.core.palette_manager import PaletteManager
 
 # Import Routers
-from app.routers import system, scenes, integrations, upload, playlists
+from app.routers import system, scenes, integrations, upload, playlists, palettes
 
 # Setup Logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -47,6 +48,11 @@ async def lifespan(app: FastAPI):
         clip_loader = ClipLoader(matrix, state_manager)
         library_manager = LibraryManager()
         playlist_manager = PlaylistManager()
+        palette_manager = PaletteManager()
+        
+        # Store palette manager reference in state_manager for scripts to access
+        # (using private attribute to avoid circular dependency)
+        state_manager._palette_manager = palette_manager
         
         # Store in app.state for routers to access
         app.state.matrix_driver = matrix
@@ -56,6 +62,7 @@ async def lifespan(app: FastAPI):
         app.state.clip_loader = clip_loader
         app.state.library_manager = library_manager
         app.state.playlist_manager = playlist_manager
+        app.state.palette_manager = palette_manager
         
         # Load Initial Scene
         scripts = loader.list_available_scripts()
@@ -85,6 +92,7 @@ app.include_router(scenes.router)
 app.include_router(integrations.router)
 app.include_router(upload.router)
 app.include_router(playlists.router)
+app.include_router(palettes.router)
 
 # Mount Static Files (Frontend)
 if os.path.exists("web/dist"):

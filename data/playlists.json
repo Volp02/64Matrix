@@ -25,5 +25,31 @@
             }
         ],
         "settings": {}
+    },
+    "my_new_playlist": {
+        "id": "my_new_playlist",
+        "name": "My New Playlist",
+        "items": [
+            {
+                "type": "script",
+                "filename": "bouncing_ball.py",
+                "duration": 10.0,
+                "palette": null
+            },
+            {
+                "type": "script",
+                "filename": "physics_balls.py",
+                "duration": 10.0,
+                "palette": null
+            },
+            {
+                "type": "clip",
+                "filename": "Huh Cat test.gif",
+                "duration": 10.0,
+                "palette": null
+            }
+        ],
+        "settings": {},
+        "default_palette": "ocean"
     }
 }

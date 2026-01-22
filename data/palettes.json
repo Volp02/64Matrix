@@ -1,0 +1,11 @@
+{
+    "test": {
+        "id": "test",
+        "name": "Test",
+        "colors": [
+            "#595EF3",
+            "#EFCC98",
+            "#6C437F"
+        ]
+    }
+}
