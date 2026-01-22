@@ -30,6 +30,25 @@
           </optgroup>
         </select>
       </div>
+      <div class="duration-selector">
+        <label>Default Duration (s):</label>
+        <input
+          type="number"
+          v-model.number="defaultDuration"
+          min="1"
+          step="0.5"
+          class="duration-select-input"
+          placeholder="30"
+        />
+        <button 
+          @click="applyDefaultDuration" 
+          class="apply-duration-btn"
+          :disabled="items.length === 0"
+          title="Apply default duration to all scenes"
+        >
+          Apply to All
+        </button>
+      </div>
       <div class="actions">
         <button @click="savePlaylist" class="save-btn">💾 Save Playlist</button>
         <button @click="$router.push('/library')" class="cancel-btn">
@@ -140,13 +159,14 @@ export default {
       items: [], // { filename, type, duration, name, palette... }
       availableScenes: [],
       defaultPalette: "", // Default palette for the playlist
+      defaultDuration: 30, // Default duration for all scenes
       defaultPalettes: [],
       customPalettes: [],
     };
   },
   computed: {
     totalDuration() {
-      return this.items.reduce((acc, item) => acc + (item.duration || 10), 0);
+      return this.items.reduce((acc, item) => acc + (item.duration || 30), 0);
     },
   },
   async mounted() {
@@ -170,11 +190,12 @@ export default {
           this.items = pl.items.map((i) => ({
             filename: i.filename,
             type: i.type,
-            duration: i.duration || 10,
+            duration: i.duration || pl.default_duration || 30,
             name: i.name || i.filename,
             palette: i.palette || "", // Default to empty string if not present
           }));
           this.defaultPalette = pl.default_palette || "";
+          this.defaultDuration = pl.default_duration || 30;
         }
       } catch (e) {
         console.error("Failed to load playlist", e);
@@ -203,7 +224,7 @@ export default {
         filename: scene.filename,
         type: scene.type,
         name: scene.name,
-        duration: 10, // Default
+        duration: this.defaultDuration || 30, // Use default duration
         palette: "", // No palette by default (uses playlist default or global)
       });
     },
@@ -218,6 +239,18 @@ export default {
       const item = this.items[index];
       this.items.splice(index, 1);
       this.items.splice(index + direction, 0, item);
+    },
+    
+    applyDefaultDuration() {
+      if (!this.defaultDuration || this.defaultDuration <= 0) {
+        alert("Please set a valid default duration first");
+        return;
+      }
+      if (confirm(`Apply ${this.defaultDuration}s duration to all ${this.items.length} scenes?`)) {
+        this.items.forEach(item => {
+          item.duration = this.defaultDuration;
+        });
+      }
     },
 
     onDragStart(event, scene) {
@@ -249,6 +282,7 @@ export default {
           palette: i.type === "script" ? (i.palette && i.palette.trim() ? i.palette : null) : null, // Only include palette for scripts, convert empty string to null
         })),
         default_palette: this.defaultPalette && this.defaultPalette.trim() ? this.defaultPalette : null,
+        default_duration: this.defaultDuration && this.defaultDuration > 0 ? this.defaultDuration : null,
         settings: {}, // Include settings for compatibility
       };
 
@@ -301,6 +335,47 @@ export default {
   padding: 0.5rem;
   border-radius: 4px;
   min-width: 150px;
+}
+
+.duration-selector {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.duration-selector label {
+  color: #ccc;
+  font-size: 0.9rem;
+}
+
+.duration-select-input {
+  background: #333;
+  border: 1px solid #444;
+  color: white;
+  padding: 0.5rem;
+  border-radius: 4px;
+  width: 80px;
+  text-align: center;
+}
+
+.apply-duration-btn {
+  background: #555;
+  border: none;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background 0.2s;
+}
+
+.apply-duration-btn:hover:not(:disabled) {
+  background: #666;
+}
+
+.apply-duration-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .palette-selector-inline {

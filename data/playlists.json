@@ -76,13 +76,13 @@
             },
             {
                 "type": "script",
-                "filename": "fireworks.py",
+                "filename": "fire.py",
                 "duration": 10.0,
                 "palette": null
             },
             {
                 "type": "script",
-                "filename": "fire_opus.py",
+                "filename": "fireworks.py",
                 "duration": 10.0,
                 "palette": null
             },
@@ -148,7 +148,19 @@
             },
             {
                 "type": "script",
+                "filename": "server_dashboard.py",
+                "duration": 10.0,
+                "palette": null
+            },
+            {
+                "type": "script",
                 "filename": "snake_game.py",
+                "duration": 10.0,
+                "palette": null
+            },
+            {
+                "type": "script",
+                "filename": "temperature_display.py",
                 "duration": 10.0,
                 "palette": null
             },
@@ -239,6 +251,12 @@
             {
                 "type": "clip",
                 "filename": "Spotify.gif",
+                "duration": 10.0,
+                "palette": null
+            },
+            {
+                "type": "clip",
+                "filename": "underwater.gif",
                 "duration": 10.0,
                 "palette": null
             }

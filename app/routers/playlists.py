@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from typing import List, Optional, Any
+import os
 from app.core.scenes.playlist_scene import PlaylistScene
 
 router = APIRouter(
@@ -20,6 +21,7 @@ class PlaylistModel(BaseModel):
     items: List[PlaylistItem]
     settings: Optional[dict] = {}
     default_palette: Optional[str] = None  # Default palette for the playlist
+    default_duration: Optional[float] = None  # Default duration for all items in the playlist
 
 class CreatePlaylistRequest(BaseModel):
     name: str
@@ -93,3 +95,74 @@ async def play_playlist(request: Request, playlist_id: str):
     state_manager.set_scene(scene)
     
     return {"status": "playing", "playlist": playlist_id}
+
+@router.post("/auto-generate-all")
+async def auto_generate_all_playlist(request: Request):
+    """Automatically create/update a playlist with all available scenes"""
+    loader = request.app.state.script_loader
+    clip_loader = request.app.state.clip_loader
+    lib_mgr = request.app.state.library_manager
+    
+    scripts = loader.list_available_scripts()
+    clips = clip_loader.list_available_clips()
+    
+    scene_items = []
+    
+    # Add all scripts
+    for s in scripts:
+        meta = lib_mgr.get_metadata(s)
+        display_name = meta.get("title", s.replace(".py", "").replace("_", " ").title())
+        # Use metadata type if available (e.g., "live"), otherwise default to "script"
+        scene_type = meta.get("type", "script")
+        scene_items.append({
+            "filename": s,
+            "name": display_name,
+            "type": scene_type
+        })
+    
+    # Add all clips
+    for c in clips:
+        meta = lib_mgr.get_metadata(c)
+        clean_name = os.path.splitext(c)[0].replace("_", " ").title()
+        display_name = meta.get("title", clean_name)
+        scene_items.append({
+            "filename": c,
+            "name": display_name,
+            "type": "clip"
+        })
+    
+    if not scene_items:
+        raise HTTPException(status_code=400, detail="No scenes available")
+    
+    manager = request.app.state.playlist_manager
+    
+    # Create playlist items from all scenes
+    # Note: For playlist items, we use "script" or "clip" as the type,
+    # not "live" (which is just a metadata category)
+    items = []
+    for scene in scene_items:
+        # Convert "live" type back to "script" for playlist items
+        item_type = "script" if scene["type"] in ["script", "live"] else scene["type"]
+        items.append({
+            "type": item_type,
+            "filename": scene["filename"],
+            "duration": 30.0,  # Default duration
+            "palette": None
+        })
+    
+    # Create or update the "all_scenes" playlist
+    playlist_data = {
+        "id": "all_scenes",
+        "name": "All Scenes",
+        "items": items,
+        "settings": {},
+        "default_palette": None
+    }
+    
+    saved = manager.save_playlist("all_scenes", playlist_data)
+    
+    return {
+        "status": "ok",
+        "playlist": saved,
+        "message": f"Created playlist with {len(items)} scenes"
+    }

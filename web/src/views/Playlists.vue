@@ -2,7 +2,12 @@
   <div class="playlists-view">
     <div class="header">
       <h2>Playlists</h2>
-      <button @click="$router.push('/editor')">➕ Create Playlist</button>
+      <div class="header-actions">
+        <button @click="autoGenerateAll" class="auto-generate-btn">
+          🔄 Auto-Generate All Scenes
+        </button>
+        <button @click="$router.push('/editor')">➕ Create Playlist</button>
+      </div>
     </div>
 
     <div class="table-container">
@@ -75,6 +80,18 @@ export default {
         alert("Failed to delete: " + e);
       }
     },
+    async autoGenerateAll() {
+      if (!confirm("This will create/update the 'All Scenes' playlist with all available scenes. Continue?")) {
+        return;
+      }
+      try {
+        const res = await api.autoGenerateAllPlaylist();
+        alert(res.data.message || "Playlist created successfully!");
+        await this.fetchPlaylists();
+      } catch (e) {
+        alert("Failed to generate playlist: " + (e.response?.data?.detail || e.message));
+      }
+    },
   },
 };
 </script>
@@ -85,6 +102,17 @@ export default {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
+}
+
+.header-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.auto-generate-btn {
+  background: #42b883;
+  color: #111;
+  font-weight: bold;
 }
 
 table {

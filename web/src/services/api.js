@@ -62,6 +62,9 @@ export default {
   playPlaylist(id) {
     return apiClient.post(`/playlists/${id}/play`);
   },
+  autoGenerateAllPlaylist() {
+    return apiClient.post("/playlists/auto-generate-all");
+  },
   // Palettes
   getPalettes() {
     return apiClient.get("/palettes/");
