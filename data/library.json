@@ -2,9 +2,6 @@
     "Huh Cat test.gif": {
         "title": "Huh Cat Test"
     },
-    "ezgif-248b0612558dc77d.gif": {
-        "title": "Ezgif-248B0612558Dc77D"
-    },
     "Nyan Cat.gif": {
         "title": "Nyan Cat"
     },
@@ -45,5 +42,17 @@
     "server_dashboard.py": {
         "title": "Server Dashboard",
         "type": "live"
+    },
+    "globe.gif": {
+        "title": "Globe"
+    },
+    "Itachi Uchia.gif": {
+        "title": "Itachi Uchia"
+    },
+    "Sasuke Uchia.gif": {
+        "title": "Sasuke Uchia"
+    },
+    "Kitty.gif": {
+        "title": "Kitty"
     }
 }
