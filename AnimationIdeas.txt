@@ -1,0 +1,131 @@
+Animation Visual Design Plans
+1. Liquid Simulation
+Appearance: Fluid blob with surface tension, smooth edges, slight transparency
+Motion: Flows and sloshes, responds to gravity, forms droplets
+Colors: Blue/cyan gradient, brighter at edges, darker in center
+Details: Ripples on surface, splashes on impact, smooth merging when blobs touch
+3. Sand/Grains
+Appearance: Individual grains (1-2 pixels), slightly varied colors
+Motion: Falls straight down, piles up, forms slopes, avalanches when too steep
+Colors: Beige/tan/yellow palette, slight color variation per grain
+Details: Realistic pile physics, grains roll down slopes, forms natural mounds
+4. Wave Interference
+Appearance: Concentric ripples expanding from multiple sources
+Motion: Waves expand, interfere (add/subtract), create patterns
+Colors: Single color (cyan/blue), brightness = wave amplitude
+Details: Interference patterns (peaks and troughs), waves pass through each other
+6. Double Pendulum
+Appearance: Two connected pendulums, simple lines/rods
+Motion: Chaotic, unpredictable paths, sometimes loops, sometimes wild swings
+Colors: Two colors (one per pendulum), trail showing path history
+Details: Trail fades over time, shows the chaotic attractor pattern
+7. Growing Plants
+Appearance: Organic branching structures, starts as a seed
+Motion: Grows upward, branches randomly, leaves appear on branches
+Colors: Green palette, darker trunk, lighter leaves
+Details: Natural branching angles, leaves sway slightly, growth is gradual
+9. Rain
+Appearance: Vertical streaks (1-2 pixels wide), varying lengths
+Motion: Falls straight down at constant speed, splashes on ground
+Colors: Light blue/cyan, slightly transparent
+Details: Splash effect on impact (small circle that fades), varying drop sizes
+10. Aurora
+Appearance: Flowing, wavy bands of light across the screen
+Motion: Slow horizontal drift, vertical waves, color shifts
+Colors: Green, blue, purple, pink — flowing gradients
+Details: Soft edges, color transitions, ethereal glow, waves move like curtains
+12. Fire
+Appearance: Flames with organic, flickering shapes
+Motion: Rises upward, flickers randomly, occasional bursts
+Colors: Red at base, orange/yellow in middle, white/yellow at tips
+Details: Heat distortion effect, sparks, varying flame heights, natural randomness
+13. Kaleidoscope
+Appearance: Symmetric, mirrored patterns that rotate
+Motion: Pattern rotates slowly, colors shift, new patterns emerge
+Colors: Vibrant, high-saturation palette, multiple colors per pattern
+Details: Perfect symmetry (4-8 fold), geometric shapes, smooth color transitions
+14. Mandelbrot Zoom
+Appearance: Fractal patterns with infinite detail
+Motion: Continuously zooms into the fractal, revealing new detail
+Colors: Color map based on iteration count (rainbow or palette)
+Details: Smooth zoom, color cycling, mesmerizing detail, never-ending
+18. Voronoi Cells
+Appearance: Polygonal cells with distinct boundaries
+Motion: Cells slowly morph as seed points move, boundaries shift
+Colors: Each cell a different color from palette, smooth transitions
+Details: Clean edges, cells pulse slightly, organic movement
+20. Nebula
+Appearance: Colorful, wispy clouds of gas
+Motion: Slow drift and morph, gentle expansion
+Colors: Deep purples, blues, pinks, oranges — cosmic palette
+Details: Soft, blended edges, color gradients, ethereal glow, depth layers
+21. Satellite Orbit
+Appearance: Central planet (circle) with orbiting satellites
+Motion: Satellites orbit in elliptical paths, trails show history
+Colors: Planet in one color, satellites in different colors, trails fade
+Details: Multiple satellites, varying orbit speeds, trail fades over time
+22. Warp Speed
+Appearance: Stars as points moving toward camera
+Motion: Stars accelerate from center, create motion blur effect
+Colors: White/yellow stars, blue streaks for speed lines
+Details: Stars get larger as they approach, speed lines, tunnel effect
+24. Snake Game
+Appearance: Snake as connected segments, food as single pixel
+Motion: Snake moves in grid, grows when eating, game over on collision
+Colors: Snake in one color, food in contrasting color, background dark
+Details: Classic gameplay, smooth movement, clear boundaries
+25. Pong
+Appearance: Two paddles (vertical bars) and a ball
+Motion: Ball bounces between paddles and walls, paddles move up/down
+Colors: Paddles and ball in contrasting colors, dark background
+Details: Score display, smooth ball physics, responsive paddle movement
+26. Pac-Man Maze
+Appearance: Classic maze layout, Pac-Man as wedge, ghosts as blobs
+Motion: Pac-Man moves through maze, ghosts chase, dots to collect
+Colors: Yellow Pac-Man, colored ghosts, blue maze, white dots
+Details: Classic gameplay, ghost AI patterns, power pellets, maze layout
+28. Conway's Game of Life
+Appearance: Grid of cells, alive = bright, dead = dark
+Motion: Cells evolve based on rules, patterns emerge and die
+Colors: Alive cells in bright color, dead cells fade to black
+Details: Classic rules, interesting patterns (gliders, oscillators), smooth evolution
+30. Plasma
+Appearance: Flowing, organic patterns with smooth color gradients
+Motion: Patterns flow and morph continuously, never repeating exactly
+Colors: High-saturation gradients (rainbow or palette-based)
+Details: Smooth color transitions, organic shapes, mesmerizing flow, no hard edges
+32. Metaballs
+Appearance: Blobby, organic shapes that merge when close
+Motion: Balls move around, merge into larger blobs, separate when far
+Colors: Single color or gradient, brighter at edges
+Details: Smooth merging, organic shapes, soft edges, liquid-like behavior
+33. Particle Trails
+Appearance: Particles with glowing trails behind them
+Motion: Particles move in patterns, trails fade over time
+Colors: Bright particles, trails fade from bright to dark
+Details: Long, smooth trails, particles in various patterns (spirals, orbits, etc.)
+34. Lightning
+Appearance: Jagged, branching bolts of electricity
+Motion: Sudden flash, branches spread, fades quickly
+Colors: Bright white/cyan core, purple/blue edges, intense brightness
+Details: Random branching, multiple bolts, flash effect, quick fade
+35. Snowfall
+Appearance: Snowflakes as small white pixels or simple shapes
+Motion: Falls slowly, drifts slightly side to side, accumulates on ground
+Colors: White snowflakes, darker background, white accumulation
+Details: Varying fall speeds, gentle drift, builds up at bottom, some flakes larger
+36. Leaves
+Appearance: Leaf shapes (simple triangles or ovals) in autumn colors
+Motion: Falls with tumbling motion, drifts in wind, lands on ground
+Colors: Red, orange, yellow, brown — autumn palette
+Details: Tumbling rotation, wind effects, natural fall paths, accumulate on ground
+37. Fireflies
+Appearance: Small bright points that twinkle
+Motion: Slow, gentle floating movement, random twinkling
+Colors: Warm yellow/white, bright when lit, dim when off
+Details: Random on/off twinkling, gentle drift, creates magical atmosphere
+38. Stars
+Appearance: Twinkling points of light scattered across screen
+Motion: Stars twinkle (brightness varies), some drift slowly
+Colors: White/yellow stars, varying brightness, dark blue/black sky
+Details: Random twinkling patterns, some stars brighter, creates starfield effect
