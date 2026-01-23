@@ -1,7 +1,0 @@
-{
-    "home_assistant": {
-        "enabled": true,
-        "url": "http://casa.os:8123/",
-        "long_lived_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiIxMmNkNzNhODM5ZTQ0ZjFkOWZiZjQxNjJhMDRiNzI0YyIsImlhdCI6MTc2OTA5NzcyNiwiZXhwIjoyMDg0NDU3NzI2fQ.NE1E5dIJpQWF7pNNLhj01goH5_d4LlnctTxK2RGkTrk"
-    }
-}
