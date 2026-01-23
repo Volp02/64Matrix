@@ -2,6 +2,8 @@
 
 A self-hosted, modular LED display platform for Raspberry Pi with 64x64 RGB LED matrices. The system enables dynamic "hot-swapping" of content, allowing you to upload new art, animations, and code directly via a web browser without rebooting the device.
 
+[![Docker Build & Push](https://github.com/Volp02/64Matrix/actions/workflows/deploy.yml/badge.svg)](https://github.com/Volp02/64Matrix/actions/workflows/deploy.yml)
+
 ## Features
 
 - 🎨 **Hybrid Rendering**: Supports both pre-rendered clips (GIFs) and dynamic Python scripts
