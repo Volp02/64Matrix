@@ -1,1 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Node.js
+node_modules/
+npm-debug.log
+yarn-error.log
+/web/dist/
+
+# VS Code
+.vscode/
+
+# Docker
+.docker_config
+
+# Project specific
 ./data/settings.json
+data/*.json
+# (Optional) If you want to ignore all uploaded media/scenes but keep the folder:
+# scenes/
+# !scenes/.gitkeep
+
+# System
+.DS_Store
+Thumbs.db
