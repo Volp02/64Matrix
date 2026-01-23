@@ -22,6 +22,17 @@ router = APIRouter(prefix="/api/system", tags=["System"])
 
 from fastapi import Request
 
+def get_version() -> str:
+    """Read version from VERSION file"""
+    try:
+        version_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "VERSION")
+        if os.path.exists(version_path):
+            with open(version_path, 'r') as f:
+                return f.read().strip()
+    except Exception:
+        pass
+    return "dev"
+
 @router.get("/status", response_model=SystemSettings)
 def get_status(request: Request):
     state_manager: StateManager = request.app.state.state_manager
@@ -82,7 +93,8 @@ def get_status(request: Request):
         "active_playlist": active_playlist_id,
         "active_scene_filename": active_scene_filename,
         "selected_palette": selected_palette_id,
-        "selected_palette_data": selected_palette
+        "selected_palette_data": selected_palette,
+        "version": get_version()
     }
 
 @router.post("/settings")

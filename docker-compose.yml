@@ -20,7 +20,7 @@ services:
       - PYTHONUNBUFFERED=1
     # Health check
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/system/status"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/system/status').read()"]
       interval: 30s
       timeout: 10s
       retries: 3

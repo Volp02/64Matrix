@@ -51,17 +51,18 @@ RUN pip download --no-binary=Pillow --dest . "Pillow==10.4.0" \
     && make install-python PYTHON=$(which python3) \
     && rm -rf /app/pillow*
 
+# Create necessary directories first
+RUN mkdir -p data scenes/scripts scenes/clips scenes/thumbnails
+
 # Copy application code
 COPY app/ ./app/
-COPY data/ ./data/
+# Note: data/ directory is typically mounted as volume, but copy if it exists in repo
 COPY scenes/ ./scenes/
 COPY emulator_config.json ./
+COPY VERSION ./
 
 # Copy built frontend from stage 1
 COPY --from=frontend-builder /build/dist ./web/dist
-
-# Create necessary directories
-RUN mkdir -p data scenes/scripts scenes/clips scenes/thumbnails
 
 # Expose port
 EXPOSE 8000

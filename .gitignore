@@ -4,6 +4,10 @@ __pycache__/
 *$py.class
 *.so
 .Python
+
+# Python (recursive - ignore caches anywhere)
+**/__pycache__/
+**/*.py[cod]
 env/
 venv/
 .venv/
