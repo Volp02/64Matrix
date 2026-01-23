@@ -61,9 +61,11 @@ RUN mkdir -p data scenes/scripts scenes/clips scenes/thumbnails
 
 # Copy application code
 COPY app/ ./app/
-# Copy scenes to working dir AND a backup location for volume restoration
+# Copy scenes to working dir
 COPY scenes/ ./scenes/
-COPY scenes/ /app/defaults/scenes/
+
+# Copy ONLY script animations to defaults (exclude clips)
+COPY scenes/scripts/ /app/defaults/scenes/scripts/
 
 COPY emulator_config.json ./
 COPY VERSION ./

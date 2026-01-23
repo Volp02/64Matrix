@@ -20,20 +20,17 @@ chmod -R 777 "$SCENES_DIR" 2>/dev/null || true
 if [ -d "$DEFAULTS_DIR" ]; then
     # Check if scripts dir is empty or doesn't exist
     if [ ! -d "$SCENES_DIR/scripts" ] || [ -z "$(ls -A $SCENES_DIR/scripts 2>/dev/null)" ]; then
-        echo "Populating scripts from defaults..."
-        mkdir -p "$SCENES_DIR/scripts"
-        cp -rn "$DEFAULTS_DIR/scripts/." "$SCENES_DIR/scripts/"
-        # Ensure permissions on copied files
-        chmod -R 777 "$SCENES_DIR/scripts"
+        if [ -d "$DEFAULTS_DIR/scripts" ]; then
+            echo "Populating scripts from defaults..."
+            mkdir -p "$SCENES_DIR/scripts"
+            cp -rn "$DEFAULTS_DIR/scripts/." "$SCENES_DIR/scripts/"
+            chmod -R 777 "$SCENES_DIR/scripts"
+        else
+            echo "Warning: No default scripts found in $DEFAULTS_DIR/scripts"
+        fi
     fi
     
-    # Check if clips dir is empty or doesn't exist
-    if [ ! -d "$SCENES_DIR/clips" ] || [ -z "$(ls -A $SCENES_DIR/clips 2>/dev/null)" ]; then
-        echo "Populating clips from defaults..."
-        mkdir -p "$SCENES_DIR/clips"
-        cp -rn "$DEFAULTS_DIR/clips/." "$SCENES_DIR/clips/"
-        chmod -R 777 "$SCENES_DIR/clips"
-    fi
+
 fi
 
 # 3. Execute the passed command (CMD from Dockerfile)
