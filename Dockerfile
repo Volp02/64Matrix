@@ -61,16 +61,26 @@ RUN mkdir -p data scenes/scripts scenes/clips scenes/thumbnails
 
 # Copy application code
 COPY app/ ./app/
-# Note: data/ directory is typically mounted as volume, but copy if it exists in repo
+# Copy scenes to working dir AND a backup location for volume restoration
 COPY scenes/ ./scenes/
+COPY scenes/ /app/defaults/scenes/
+
 COPY emulator_config.json ./
 COPY VERSION ./
+
+# Copy and setup entrypoint
+COPY entrypoint.sh /app/entrypoint.sh
+# Fix Windows line endings in entrypoint.sh (just in case) using sed, then make executable
+RUN sed -i 's/\r$//' /app/entrypoint.sh && chmod +x /app/entrypoint.sh
 
 # Copy built frontend from stage 1
 COPY --from=frontend-builder /build/dist ./web/dist
 
 # Expose port
 EXPOSE 8000
+
+# Set Entrypoint
+ENTRYPOINT ["/app/entrypoint.sh"]
 
 # Run the application
 CMD ["python", "-m", "app.main"]
