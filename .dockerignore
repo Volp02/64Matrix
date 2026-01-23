@@ -36,8 +36,8 @@ data/*.json
 !data/.gitkeep
 
 # Scenes (will be mounted as volume)
-scenes/**/*
-!scenes/.gitkeep
+# scenes/**/*
+# !scenes/.gitkeep
 
 # OS
 .DS_Store
