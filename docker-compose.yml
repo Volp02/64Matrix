@@ -2,6 +2,7 @@ version: "3.8"
 
 services:
   matrix-display:
+    build: .
     image: volp02/matrix-display-64:latest
     container_name: matrix-display
     ports:
@@ -20,18 +21,14 @@ services:
       - PYTHONUNBUFFERED=1
     # Health check
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/system/status').read()"]
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/system/status').read()",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
-
-  watchtower:
-    image: containrrr/watchtower
-    container_name: watchtower
-    restart: unless-stopped
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    command: --interval 300 --cleanup
-    environment:
-      - WATCHTOWER_ROLLING_RESTART=true

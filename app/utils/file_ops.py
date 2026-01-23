@@ -8,7 +8,9 @@ class FileOps:
     @staticmethod
     def load_json(filepath, default=None):
         if not os.path.exists(filepath):
-            logger.info(f"File not found: {filepath}, returning default.")
+            logger.info(f"File not found: {filepath}, creating with default.")
+            if default is not None:
+                FileOps.save_json(filepath, default)
             return default or {}
         
         try:
