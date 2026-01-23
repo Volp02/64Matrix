@@ -2,7 +2,6 @@ version: "3.8"
 
 services:
   matrix-display:
-    build: .
     image: volp02/matrix-display-64:latest
     container_name: matrix-display
     ports:
