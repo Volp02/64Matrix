@@ -34,11 +34,16 @@ RUN apt-get update && apt-get install -y \
 # Copy Python requirements
 COPY requirements.txt .
 
-# Remove RGBMatrixEmulator for production Pi build (saves space/time and avoids complex dependencies)
-RUN sed -i '/RGBMatrixEmulator/d' requirements.txt
+# ARG is needed to use TARGETARCH
+ARG TARGETARCH
 
-# Install dependencies first
-RUN pip install --no-cache-dir "Pillow==10.4.0" -r requirements.txt
+# Install dependencies
+# If we are on amd64 (Server/PC), we KEEP the emulator for testing.
+# If we are on arm64 (Raspberry Pi), we REMOVE it to save space and avoid conflicts.
+RUN if [ "$TARGETARCH" = "arm64" ]; then \
+        sed -i '/RGBMatrixEmulator/d' requirements.txt; \
+    fi && \
+    pip install --no-cache-dir "Pillow==10.4.0" -r requirements.txt
 
 # Download Pillow source to get Imaging.h, then build matrix library
 RUN pip download --no-binary=Pillow --dest . "Pillow==10.4.0" \
