@@ -3,3 +3,5 @@ uvicorn[standard]
 pydantic
 RGBMatrixEmulator
 Pillow
+python-multipart
+aiofiles
