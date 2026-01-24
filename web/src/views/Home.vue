@@ -135,10 +135,10 @@ export default {
       this.refresh,
       this.dashboardDisplay.refreshInterval,
     );
-    // Update preview more frequently (every 200ms for smooth animation)
+    // Update preview with same interval as status
     this.previewInterval = setInterval(() => {
       this.previewUrl = api.getPreviewUrl();
-    }, 200);
+    }, this.dashboardDisplay.refreshInterval);
 
     // Listen for settings changes
     window.addEventListener(
@@ -203,13 +203,20 @@ export default {
     },
     handleDisplaySettingsChange(event) {
       this.dashboardDisplay = event.detail;
-      // Update refresh interval
+      // Update refresh interval for status
       if (this.pollInterval) {
         clearInterval(this.pollInterval);
         this.pollInterval = setInterval(
           this.refresh,
           this.dashboardDisplay.refreshInterval,
         );
+      }
+      // Update refresh interval for preview
+      if (this.previewInterval) {
+        clearInterval(this.previewInterval);
+        this.previewInterval = setInterval(() => {
+          this.previewUrl = api.getPreviewUrl();
+        }, this.dashboardDisplay.refreshInterval);
       }
     },
     getStatClass(value, warning, critical) {
