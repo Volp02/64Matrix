@@ -38,7 +38,7 @@ if [ ! -d "venv" ]; then
 fi
 
 source venv/bin/activate
-pip install --upgrade pip setuptools wheel
+pip install --upgrade pip setuptools wheel Pillow
 
 # 5. Setup RGB Matrix Library
 echo -e "${GREEN}[5/6] Setting up RGB Matrix Library...${NC}"
