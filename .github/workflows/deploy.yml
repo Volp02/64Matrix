@@ -12,10 +12,15 @@ env:
 
 jobs:
   build-and-push:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: linux/arm64
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -42,8 +47,10 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          # No platforms specified = build for current host (ARM64)
+          platforms: linux/arm64
           push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           tags: |
             ${{ env.DOCKER_HUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
             ${{ env.DOCKER_HUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ steps.tag_version.outputs.tag }}
