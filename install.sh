@@ -31,34 +31,31 @@ else
     echo -e "${GREEN}[3/6] Node.js already installed.$(node -v)${NC}"
 fi
 
-# 4. Setup RGB Matrix Library
-echo -e "${GREEN}[4/6] Setting up RGB Matrix Library...${NC}"
+# 4. Setup Python Environment
+echo -e "${GREEN}[4/6] Setting up Python environment...${NC}"
+if [ ! -d "venv" ]; then
+    python3 -m venv venv --system-site-packages
+fi
+
+source venv/bin/activate
+pip install --upgrade pip setuptools wheel
+
+# 5. Setup RGB Matrix Library
+echo -e "${GREEN}[5/6] Setting up RGB Matrix Library...${NC}"
 if [ ! -d "rpi-rgb-led-matrix" ]; then
     git clone https://github.com/hzeller/rpi-rgb-led-matrix.git
 fi
 
-# Compile Python bindings
+# Compile & Install Python bindings into venv
 cd rpi-rgb-led-matrix
-# Minimal flags for performance, can be adjusted
+# Build C library first
+make -j$(nproc)
+# Build Python bindings
 make build-python PYTHON=$(which python3)
-sudo make install-python PYTHON=$(which python3)
+make install-python PYTHON=$(which python3) 
 cd ..
 
-# 5. Setup Python Environment
-echo -e "${GREEN}[5/6] Setting up Python environment...${NC}"
-if [ ! -d "venv" ]; then
-    python3 -m venv venv
-fi
-
-source venv/bin/activate
-pip install --upgrade pip
-
 # Install dependencies
-# Note: rgbmatrix is installed globally/system-site-packages often, 
-# so we might need to allow system site packages or handle it carefully.
-# For simplicity in this script, we assume the make install-python put it in a place reachable.
-# If using venv, we might need to link it or install it inside.
-# Let's try installing requirements first.
 pip install -r requirements.txt
 
 # 6. Build Frontend
