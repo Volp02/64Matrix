@@ -95,6 +95,20 @@
           <small class="help-text"> Display version and system details </small>
         </div>
 
+        <div class="setting-group">
+          <label class="setting-label">
+            <input
+              type="checkbox"
+              v-model="dashboardDisplay.showPreview"
+              @change="saveDashboardDisplay"
+            />
+            <span>Show Live Preview</span>
+          </label>
+          <small class="help-text">
+            Display real-time preview of the matrix display
+          </small>
+        </div>
+
         <div class="setting-group" v-if="dashboardDisplay.showSystemInfo">
           <label class="setting-label">
             <input
@@ -168,6 +182,7 @@ export default {
         showCpuUsage: true,
         showRamUsage: true,
         showCpuTemp: true,
+        showPreview: true,
         refreshInterval: 2000,
       },
       isConnected: false,

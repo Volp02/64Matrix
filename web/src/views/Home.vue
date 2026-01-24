@@ -54,7 +54,7 @@
     </div>
 
     <!-- Live Preview Section -->
-    <div class="preview-card">
+    <div class="preview-card" v-if="dashboardDisplay.showPreview">
       <h3>Live Preview</h3>
       <div class="preview-container">
         <img
@@ -122,6 +122,7 @@ export default {
         showCpuUsage: true,
         showRamUsage: true,
         showCpuTemp: true,
+        showPreview: true,
         refreshInterval: 2000,
       },
       systemStats: null,
