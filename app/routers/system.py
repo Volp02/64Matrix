@@ -84,6 +84,12 @@ def get_status(request: Request):
     if palette_mgr:
         selected_palette = palette_mgr.get_palette(selected_palette_id)
     
+    # Get current FPS from engine
+    engine = getattr(request.app.state, "engine", None)
+    current_fps = 0.0
+    if engine:
+        current_fps = engine.get_current_fps()
+    
     # Add to response (requires schema update first!)
     # We return a dict that matches Schema 
     return {
@@ -94,7 +100,8 @@ def get_status(request: Request):
         "active_scene_filename": active_scene_filename,
         "selected_palette": selected_palette_id,
         "selected_palette_data": selected_palette,
-        "version": get_version()
+        "version": get_version(),
+        "fps": round(current_fps, 1)
     }
 
 @router.post("/settings")

@@ -19,6 +19,13 @@ class Engine:
         self._latest_preview_frame = None  # PNG bytes
         self._last_capture_time = 0
         self._preview_capture_interval = 0.2  # Capture every 200ms (5 FPS)
+        
+        # FPS monitoring
+        self._frame_times = []  # Store recent frame times for rolling average
+        self._fps_window = 2.0  # Calculate FPS over 2 second window
+        self._last_fps_log = 0  # Last time we logged FPS warning
+        self._fps_log_interval = 5.0  # Only log FPS warnings every 5 seconds
+        self._current_fps = 0.0  # Current calculated FPS
 
     def start(self):
         """Starts the render loop in the current thread (blocking) or separate thread."""
@@ -109,6 +116,9 @@ class Engine:
                 sleep_time = self._frame_duration - elapsed
                 if sleep_time > 0:
                     time.sleep(sleep_time)
+                
+                # 6. FPS Monitoring
+                self._update_fps_tracking(current_time)
                     
             except KeyboardInterrupt:
                 logger.info("Engine loop interrupted by user")
@@ -140,6 +150,35 @@ class Engine:
                     self._last_capture_time = current_time
             except Exception as e:
                 logger.debug(f"Failed to capture preview frame: {e}")
+    
+    def _update_fps_tracking(self, current_time):
+        """Track frame times and calculate FPS, logging warnings if performance is poor."""
+        # Add current frame time
+        self._frame_times.append(current_time)
+        
+        # Remove old frame times outside the window
+        cutoff_time = current_time - self._fps_window
+        self._frame_times = [t for t in self._frame_times if t > cutoff_time]
+        
+        # Calculate FPS (number of frames in the window / window duration)
+        if len(self._frame_times) > 1:
+            time_span = self._frame_times[-1] - self._frame_times[0]
+            if time_span > 0:
+                self._current_fps = (len(self._frame_times) - 1) / time_span
+                
+                # Log warning if FPS is below 20 (but not too frequently)
+                if self._current_fps < 20.0:
+                    if current_time - self._last_fps_log >= self._fps_log_interval:
+                        logger.warning(
+                            f"⚠️  Low FPS detected: {self._current_fps:.1f} FPS "
+                            f"(target: {self._target_fps} FPS). "
+                            f"Check system load and performance optimizations."
+                        )
+                        self._last_fps_log = current_time
+    
+    def get_current_fps(self):
+        """Get the current calculated FPS."""
+        return self._current_fps
     
     def get_preview_frame(self):
         """

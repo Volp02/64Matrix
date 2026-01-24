@@ -10,6 +10,7 @@ class SystemSettings(BaseModel):
     selected_palette: Optional[str] = None
     selected_palette_data: Optional[Dict[str, Any]] = None
     version: Optional[str] = None
+    fps: Optional[float] = None
 
 class SceneItem(BaseModel):
     filename: str
