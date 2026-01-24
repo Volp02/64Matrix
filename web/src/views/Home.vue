@@ -21,7 +21,7 @@
             v-if="status.fps !== undefined && dashboardDisplay.showFps"
           >
             <span class="label">FPS:</span>
-            <span class="value fps-value" :class="getFpsClass(status.fps)">
+            <span class="value fps-value" :class="'text-' + getFpsClass(status.fps)">
               {{ status.fps.toFixed(1) }}
             </span>
           </div>
@@ -79,7 +79,7 @@
             <div 
               class="progress-bar" 
               :style="{ width: `${systemStats.cpu_percent}%` }"
-              :class="getStatClass(systemStats.cpu_percent, 80, 90)"
+              :class="'bg-' + getStatClass(systemStats.cpu_percent, 80, 90)"
             ></div>
           </div>
         </div>
@@ -92,7 +92,7 @@
             <div 
               class="progress-bar" 
               :style="{ width: `${systemStats.ram_percent}%` }"
-              :class="getStatClass(systemStats.ram_percent, 80, 90)"
+              :class="'bg-' + getStatClass(systemStats.ram_percent, 80, 90)"
             ></div>
           </div>
           <div class="stat-detail">
@@ -102,7 +102,7 @@
         <div class="stat-item glass-panel" v-if="dashboardDisplay.showCpuTemp && systemStats.cpu_temp !== null">
           <div class="stat-header">
             <span class="stat-label">CPU Temp</span>
-            <span class="stat-value-text" :class="getTempClass(systemStats.cpu_temp)">
+            <span class="stat-value-text" :class="'text-' + getTempClass(systemStats.cpu_temp)">
               {{ systemStats.cpu_temp }}°C
             </span>
           </div>
@@ -110,7 +110,7 @@
             <div 
               class="temp-bar" 
               :style="{ width: `${Math.min(systemStats.cpu_temp, 100)}%` }"
-              :class="getTempClass(systemStats.cpu_temp)"
+              :class="'bg-' + getTempClass(systemStats.cpu_temp)"
             ></div>
           </div>
         </div>
@@ -217,9 +217,9 @@ export default {
       }
     },
     getFpsClass(fps) {
-      if (fps >= 25) return "fps-good";
-      if (fps >= 20) return "fps-warning";
-      return "fps-poor";
+      if (fps >= 25) return "status-good";
+      if (fps >= 20) return "status-warning";
+      return "status-poor";
     },
     loadDashboardDisplay() {
       const saved = localStorage.getItem("dashboardDisplay");
@@ -245,15 +245,21 @@ export default {
         }, this.dashboardDisplay.refreshInterval);
       }
     },
+    getFpsClass(fps) {
+      if (fps >= 25) return "status-good";
+      if (fps >= 20) return "status-warning";
+      return "status-poor";
+    },
+    // ...
     getStatClass(value, warning, critical) {
-      if (value >= critical) return 'fps-poor';
-      if (value >= warning) return 'fps-warning';
-      return 'fps-good';
+      if (value >= critical) return 'status-poor';
+      if (value >= warning) return 'status-warning';
+      return 'status-good';
     },
     getTempClass(temp) {
-      if (temp >= 80) return 'fps-poor';
-      if (temp >= 70) return 'fps-warning';
-      return 'fps-good';
+      if (temp >= 80) return 'status-poor';
+      if (temp >= 70) return 'status-warning';
+      return 'status-good';
     },
   },
 };
@@ -378,18 +384,27 @@ export default {
   font-weight: 700;
 }
 
-.fps-good {
+.text-status-good {
   color: #42b883 !important;
-  background-color: #42b883 !important; /* For progress bars */
 }
 
-.fps-warning {
+.text-status-warning {
   color: #f39c12 !important;
+}
+
+.text-status-poor {
+  color: #e74c3c !important;
+}
+
+.bg-status-good {
+  background-color: #42b883 !important;
+}
+
+.bg-status-warning {
   background-color: #f39c12 !important;
 }
 
-.fps-poor {
-  color: #e74c3c !important;
+.bg-status-poor {
   background-color: #e74c3c !important;
 }
 
