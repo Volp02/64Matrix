@@ -16,6 +16,12 @@
             <span class="label">Palette:</span>
             <span class="value">{{ status.selected_palette_data.name }}</span>
           </div>
+          <div class="status-row" v-if="status.fps !== undefined">
+            <span class="label">FPS:</span>
+            <span class="value fps-value" :class="getFpsClass(status.fps)">
+              {{ status.fps.toFixed(1) }}
+            </span>
+          </div>
         </div>
         <div class="palette-preview-col" v-if="status.selected_palette_data">
           <div class="palette-mini-preview">
@@ -36,7 +42,7 @@
         </div>
       </div>
     </div>
-    
+
     <!-- Live Preview Section -->
     <div class="preview-card">
       <h3>Live Preview</h3>
@@ -49,7 +55,7 @@
         />
       </div>
     </div>
-    
+
     <SystemControls :settings="settings" @update="updateSettings" />
   </div>
 </template>
@@ -66,11 +72,11 @@ export default {
   data() {
     return {
       settings: { brightness: 100, speed: 1.0 },
-      status: { 
-        active_scene: null, 
+      status: {
+        active_scene: null,
         active_playlist: null,
         selected_palette: null,
-        selected_palette_data: null
+        selected_palette_data: null,
       },
       pollInterval: null,
       previewInterval: null,
@@ -118,6 +124,11 @@ export default {
       } catch (e) {
         console.error("Failed to update settings", e);
       }
+    },
+    getFpsClass(fps) {
+      if (fps >= 25) return "fps-good";
+      if (fps >= 20) return "fps-warning";
+      return "fps-poor";
     },
   },
 };
@@ -226,5 +237,21 @@ export default {
   width: 20px;
   min-width: 20px;
   height: 100%;
+}
+
+.fps-value {
+  transition: color 0.3s ease;
+}
+
+.fps-good {
+  color: #42b883 !important;
+}
+
+.fps-warning {
+  color: #f39c12 !important;
+}
+
+.fps-poor {
+  color: #e74c3c !important;
 }
 </style>
