@@ -266,10 +266,13 @@ export default {
 }
 
 .settings-section {
-  background: #2a2a2a;
-  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 16px;
   padding: 2rem;
-  border: 1px solid #444;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
 }
 
 .settings-section h3 {

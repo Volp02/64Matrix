@@ -70,23 +70,49 @@
     <div class="status-card" v-if="dashboardDisplay.showSystemInfo && systemStats">
       <h3>System Performance</h3>
       <div class="stats-grid">
-        <div class="stat-item" v-if="dashboardDisplay.showCpuUsage">
-          <span class="stat-label">CPU Usage</span>
-          <span class="stat-value" :class="getStatClass(systemStats.cpu_percent, 80, 90)">
-            {{ systemStats.cpu_percent }}%
-          </span>
+        <div class="stat-item glass-panel" v-if="dashboardDisplay.showCpuUsage">
+          <div class="stat-header">
+            <span class="stat-label">CPU Usage</span>
+            <span class="stat-value-text">{{ systemStats.cpu_percent }}%</span>
+          </div>
+          <div class="progress-bar-container">
+            <div 
+              class="progress-bar" 
+              :style="{ width: `${systemStats.cpu_percent}%` }"
+              :class="getStatClass(systemStats.cpu_percent, 80, 90)"
+            ></div>
+          </div>
         </div>
-        <div class="stat-item" v-if="dashboardDisplay.showRamUsage">
-          <span class="stat-label">RAM Usage</span>
-          <span class="stat-value" :class="getStatClass(systemStats.ram_percent, 80, 90)">
-            {{ systemStats.ram_percent }}% ({{ systemStats.ram_used_mb }} / {{ systemStats.ram_total_mb }} MB)
-          </span>
+        <div class="stat-item glass-panel" v-if="dashboardDisplay.showRamUsage">
+          <div class="stat-header">
+            <span class="stat-label">RAM Usage</span>
+            <span class="stat-value-text">{{ systemStats.ram_percent }}%</span>
+          </div>
+          <div class="progress-bar-container">
+            <div 
+              class="progress-bar" 
+              :style="{ width: `${systemStats.ram_percent}%` }"
+              :class="getStatClass(systemStats.ram_percent, 80, 90)"
+            ></div>
+          </div>
+          <div class="stat-detail">
+            {{ systemStats.ram_used_mb }} / {{ systemStats.ram_total_mb }} MB
+          </div>
         </div>
-        <div class="stat-item" v-if="dashboardDisplay.showCpuTemp && systemStats.cpu_temp !== null">
-          <span class="stat-label">CPU Temp</span>
-          <span class="stat-value" :class="getTempClass(systemStats.cpu_temp)">
-            {{ systemStats.cpu_temp }}°C
-          </span>
+        <div class="stat-item glass-panel" v-if="dashboardDisplay.showCpuTemp && systemStats.cpu_temp !== null">
+          <div class="stat-header">
+            <span class="stat-label">CPU Temp</span>
+            <span class="stat-value-text" :class="getTempClass(systemStats.cpu_temp)">
+              {{ systemStats.cpu_temp }}°C
+            </span>
+          </div>
+          <div class="temp-indicator">
+            <div 
+              class="temp-bar" 
+              :style="{ width: `${Math.min(systemStats.cpu_temp, 100)}%` }"
+              :class="getTempClass(systemStats.cpu_temp)"
+            ></div>
+          </div>
         </div>
       </div>
     </div>
@@ -240,11 +266,21 @@ export default {
   gap: 2rem;
 }
 
-.status-card {
-  background: #2a2a2a;
+.status-card, .preview-card {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   padding: 1.5rem;
-  border-radius: 8px;
-  border: 1px solid #444;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.status-card:hover, .preview-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.15);
 }
 
 .status-content {
@@ -255,58 +291,54 @@ export default {
 }
 
 .thumb-col img {
-  width: 80px;
-  height: 80px;
+  width: 100px;
+  height: 100px;
   object-fit: cover;
-  border-radius: 4px;
-  border: 1px solid #555;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
-.status-card h3 {
+.status-card h3, .preview-card h3 {
   margin-top: 0;
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
   color: #42b883;
+  font-weight: 600;
+  letter-spacing: 0.5px;
 }
 
 .status-row {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 0.5rem;
-  font-size: 1.1rem;
-  gap: 2rem; /* Add some spacing between label and value */
+  margin-bottom: 0.8rem;
+  font-size: 1.05rem;
+  gap: 2rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.status-row:last-child {
+  border-bottom: none;
 }
 
 .label {
-  color: #888;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.95rem;
 }
 
 .value {
-  font-weight: bold;
+  font-weight: 600;
   color: #fff;
-}
-
-.preview-card {
-  background: #2a2a2a;
-  padding: 1.5rem;
-  border-radius: 8px;
-  border: 1px solid #444;
-}
-
-.preview-card h3 {
-  margin-top: 0;
-  margin-bottom: 1rem;
-  color: #42b883;
 }
 
 .preview-container {
   display: flex;
   justify-content: center;
   align-items: center;
-  background: #1a1a1a;
-  border-radius: 4px;
-  padding: 1rem;
-  border: 2px solid #444;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .preview-image {
@@ -314,8 +346,9 @@ export default {
   image-rendering: crisp-edges;
   max-width: 100%;
   height: auto;
-  border-radius: 4px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  border-radius: 8px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .palette-preview-col {
@@ -325,62 +358,113 @@ export default {
 
 .palette-mini-preview {
   display: flex;
-  gap: 2px;
-  border-radius: 4px;
+  gap: 0;
+  border-radius: 8px;
   overflow: hidden;
-  border: 1px solid #555;
-  height: 40px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  height: 48px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .mini-swatch {
-  width: 20px;
-  min-width: 20px;
+  width: 24px;
+  min-width: 24px;
   height: 100%;
 }
 
 .fps-value {
   transition: color 0.3s ease;
+  font-family: monospace;
+  font-weight: 700;
 }
 
 .fps-good {
   color: #42b883 !important;
+  background-color: #42b883 !important; /* For progress bars */
 }
 
 .fps-warning {
   color: #f39c12 !important;
+  background-color: #f39c12 !important;
 }
 
 .fps-poor {
   color: #e74c3c !important;
+  background-color: #e74c3c !important;
 }
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-  margin-top: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.5rem;
+  margin-top: 0.5rem;
 }
 
 .stat-item {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.8rem;
+}
+
+.glass-panel {
+  background: rgba(0, 0, 0, 0.2);
   padding: 1rem;
-  background: #1a1a1a;
-  border-radius: 4px;
-  border: 1px solid #444;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.stat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .stat-label {
-  color: #888;
-  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.85rem;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 1px;
+  font-weight: 600;
 }
 
-.stat-value {
-  font-size: 1.3rem;
-  font-weight: bold;
-  transition: color 0.3s ease;
+.stat-value-text {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.progress-bar-container {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s ease;
+}
+
+.temp-indicator {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  margin-top: 0.2rem;
+  overflow: hidden;
+}
+
+.temp-bar {
+  height: 100%;
+  transition: width 0.5s ease, background-color 0.3s ease;
+}
+
+.stat-detail {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.4);
+  text-align: right;
+  margin-top: -0.4rem;
 }
 </style>
