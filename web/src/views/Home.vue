@@ -70,19 +70,19 @@
     <div class="status-card" v-if="dashboardDisplay.showSystemInfo && systemStats">
       <h3>System Performance</h3>
       <div class="stats-grid">
-        <div class="stat-item">
+        <div class="stat-item" v-if="dashboardDisplay.showCpuUsage">
           <span class="stat-label">CPU Usage</span>
           <span class="stat-value" :class="getStatClass(systemStats.cpu_percent, 80, 90)">
             {{ systemStats.cpu_percent }}%
           </span>
         </div>
-        <div class="stat-item">
+        <div class="stat-item" v-if="dashboardDisplay.showRamUsage">
           <span class="stat-label">RAM Usage</span>
           <span class="stat-value" :class="getStatClass(systemStats.ram_percent, 80, 90)">
             {{ systemStats.ram_percent }}% ({{ systemStats.ram_used_mb }} / {{ systemStats.ram_total_mb }} MB)
           </span>
         </div>
-        <div class="stat-item" v-if="systemStats.cpu_temp !== null">
+        <div class="stat-item" v-if="dashboardDisplay.showCpuTemp && systemStats.cpu_temp !== null">
           <span class="stat-label">CPU Temp</span>
           <span class="stat-value" :class="getTempClass(systemStats.cpu_temp)">
             {{ systemStats.cpu_temp }}°C
@@ -119,6 +119,9 @@ export default {
       dashboardDisplay: {
         showFps: true,
         showSystemInfo: true,
+        showCpuUsage: true,
+        showRamUsage: true,
+        showCpuTemp: true,
         refreshInterval: 2000,
       },
       systemStats: null,

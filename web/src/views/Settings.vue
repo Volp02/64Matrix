@@ -95,6 +95,39 @@
           <small class="help-text"> Display version and system details </small>
         </div>
 
+        <div class="setting-group" v-if="dashboardDisplay.showSystemInfo">
+          <label class="setting-label">
+            <input
+              type="checkbox"
+              v-model="dashboardDisplay.showCpuUsage"
+              @change="saveDashboardDisplay"
+            />
+            <span>Show CPU Usage</span>
+          </label>
+        </div>
+
+        <div class="setting-group" v-if="dashboardDisplay.showSystemInfo">
+          <label class="setting-label">
+            <input
+              type="checkbox"
+              v-model="dashboardDisplay.showRamUsage"
+              @change="saveDashboardDisplay"
+            />
+            <span>Show RAM Usage</span>
+          </label>
+        </div>
+
+        <div class="setting-group" v-if="dashboardDisplay.showSystemInfo">
+          <label class="setting-label">
+            <input
+              type="checkbox"
+              v-model="dashboardDisplay.showCpuTemp"
+              @change="saveDashboardDisplay"
+            />
+            <span>Show CPU Temperature</span>
+          </label>
+        </div>
+
         <div class="setting-group">
           <label class="setting-label">
             <span>Auto-refresh Interval</span>
@@ -132,6 +165,9 @@ export default {
       dashboardDisplay: {
         showFps: true,
         showSystemInfo: true,
+        showCpuUsage: true,
+        showRamUsage: true,
+        showCpuTemp: true,
         refreshInterval: 2000,
       },
       isConnected: false,
