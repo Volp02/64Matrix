@@ -20,7 +20,7 @@ sudo apt update && sudo apt upgrade -y
 
 # 2. Install Dependencies
 echo -e "${GREEN}[2/6] Installing system dependencies...${NC}"
-sudo apt install -y python3-pip python3-venv build-essential python3-dev git curl
+sudo apt install -y python3-pip python3-venv build-essential python3-dev git curl python3-pillow
 
 # 3. Install Node.js (v18)
 if ! command -v node &> /dev/null; then
@@ -38,7 +38,7 @@ if [ ! -d "venv" ]; then
 fi
 
 source venv/bin/activate
-pip install --upgrade pip setuptools wheel Pillow
+pip install --upgrade pip setuptools wheel
 
 # 5. Setup RGB Matrix Library
 echo -e "${GREEN}[5/6] Setting up RGB Matrix Library...${NC}"
