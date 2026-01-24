@@ -43,14 +43,74 @@
               placeholder="Enter your Home Assistant long-lived token"
             />
             <small class="help-text">
-              Create a long-lived access token in Home Assistant: Profile → Long-Lived Access Tokens
+              Create a long-lived access token in Home Assistant: Profile →
+              Long-Lived Access Tokens
             </small>
           </label>
         </div>
 
-        <div v-if="homeAssistant.enabled && homeAssistant.url && homeAssistant.long_lived_token" class="status-indicator">
+        <div
+          v-if="
+            homeAssistant.enabled &&
+            homeAssistant.url &&
+            homeAssistant.long_lived_token
+          "
+          class="status-indicator"
+        >
           <span class="status-dot" :class="{ connected: isConnected }"></span>
           <span>{{ isConnected ? "Connected" : "Not Connected" }}</span>
+        </div>
+      </div>
+
+      <!-- Dashboard Display Section -->
+      <div class="settings-section">
+        <h3>Dashboard Display</h3>
+        <p class="section-description">
+          Customize what information is shown on the dashboard.
+        </p>
+
+        <div class="setting-group">
+          <label class="setting-label">
+            <input
+              type="checkbox"
+              v-model="dashboardDisplay.showFps"
+              @change="saveDashboardDisplay"
+            />
+            <span>Show FPS Counter</span>
+          </label>
+          <small class="help-text">
+            Display real-time frames per second on the dashboard
+          </small>
+        </div>
+
+        <div class="setting-group">
+          <label class="setting-label">
+            <input
+              type="checkbox"
+              v-model="dashboardDisplay.showSystemInfo"
+              @change="saveDashboardDisplay"
+            />
+            <span>Show System Information</span>
+          </label>
+          <small class="help-text"> Display version and system details </small>
+        </div>
+
+        <div class="setting-group">
+          <label class="setting-label">
+            <span>Auto-refresh Interval</span>
+            <select
+              v-model.number="dashboardDisplay.refreshInterval"
+              @change="saveDashboardDisplay"
+            >
+              <option :value="1000">1 second (fast)</option>
+              <option :value="2000">2 seconds (default)</option>
+              <option :value="5000">5 seconds (slow)</option>
+              <option :value="10000">10 seconds (very slow)</option>
+            </select>
+          </label>
+          <small class="help-text">
+            How often the dashboard updates status information
+          </small>
         </div>
       </div>
     </div>
@@ -69,19 +129,25 @@ export default {
         url: "",
         long_lived_token: "",
       },
+      dashboardDisplay: {
+        showFps: true,
+        showSystemInfo: true,
+        refreshInterval: 2000,
+      },
       isConnected: false,
       saveTimeout: null,
     };
   },
   async mounted() {
     await this.loadSettings();
+    this.loadDashboardDisplay();
   },
   methods: {
     async loadSettings() {
       try {
         const res = await api.getAppSettings();
         const settings = res.data.settings;
-        
+
         if (settings.home_assistant) {
           this.homeAssistant = {
             enabled: settings.home_assistant.enabled || false,
@@ -98,7 +164,7 @@ export default {
       if (this.saveTimeout) {
         clearTimeout(this.saveTimeout);
       }
-      
+
       this.saveTimeout = setTimeout(async () => {
         try {
           await api.updateAppSettings("home_assistant", this.homeAssistant);
@@ -107,6 +173,24 @@ export default {
           alert("Failed to save settings: " + e);
         }
       }, 500);
+    },
+    loadDashboardDisplay() {
+      const saved = localStorage.getItem("dashboardDisplay");
+      if (saved) {
+        this.dashboardDisplay = JSON.parse(saved);
+      }
+    },
+    saveDashboardDisplay() {
+      localStorage.setItem(
+        "dashboardDisplay",
+        JSON.stringify(this.dashboardDisplay),
+      );
+      // Emit event for Home component to listen to
+      window.dispatchEvent(
+        new CustomEvent("dashboardDisplayChanged", {
+          detail: this.dashboardDisplay,
+        }),
+      );
     },
   },
 };
@@ -177,7 +261,19 @@ export default {
   font-family: inherit;
 }
 
-.setting-label input:focus {
+.setting-label select {
+  padding: 0.75rem;
+  background: #1a1a1a;
+  border: 1px solid #444;
+  border-radius: 4px;
+  color: white;
+  font-size: 1rem;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.setting-label input:focus,
+.setting-label select:focus {
   outline: none;
   border-color: #42b883;
 }

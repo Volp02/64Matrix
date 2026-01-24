@@ -16,11 +16,21 @@
             <span class="label">Palette:</span>
             <span class="value">{{ status.selected_palette_data.name }}</span>
           </div>
-          <div class="status-row" v-if="status.fps !== undefined">
+          <div
+            class="status-row"
+            v-if="status.fps !== undefined && dashboardDisplay.showFps"
+          >
             <span class="label">FPS:</span>
             <span class="value fps-value" :class="getFpsClass(status.fps)">
               {{ status.fps.toFixed(1) }}
             </span>
+          </div>
+          <div
+            class="status-row"
+            v-if="dashboardDisplay.showSystemInfo && status.version"
+          >
+            <span class="label">Version:</span>
+            <span class="value">{{ status.version }}</span>
           </div>
         </div>
         <div class="palette-preview-col" v-if="status.selected_palette_data">
@@ -81,21 +91,40 @@ export default {
       pollInterval: null,
       previewInterval: null,
       previewUrl: api.getPreviewUrl(),
+      dashboardDisplay: {
+        showFps: true,
+        showSystemInfo: true,
+        refreshInterval: 2000,
+      },
     };
   },
   async mounted() {
+    this.loadDashboardDisplay();
     await this.refresh();
-    this.pollInterval = setInterval(this.refresh, 2000);
+    this.pollInterval = setInterval(
+      this.refresh,
+      this.dashboardDisplay.refreshInterval,
+    );
     // Update preview more frequently (every 200ms for smooth animation)
     this.previewInterval = setInterval(() => {
       this.previewUrl = api.getPreviewUrl();
     }, 200);
+
+    // Listen for settings changes
+    window.addEventListener(
+      "dashboardDisplayChanged",
+      this.handleDisplaySettingsChange,
+    );
   },
   beforeUnmount() {
     clearInterval(this.pollInterval);
     if (this.previewInterval) {
       clearInterval(this.previewInterval);
     }
+    window.removeEventListener(
+      "dashboardDisplayChanged",
+      this.handleDisplaySettingsChange,
+    );
   },
   methods: {
     getThumb(filename) {
@@ -129,6 +158,23 @@ export default {
       if (fps >= 25) return "fps-good";
       if (fps >= 20) return "fps-warning";
       return "fps-poor";
+    },
+    loadDashboardDisplay() {
+      const saved = localStorage.getItem("dashboardDisplay");
+      if (saved) {
+        this.dashboardDisplay = JSON.parse(saved);
+      }
+    },
+    handleDisplaySettingsChange(event) {
+      this.dashboardDisplay = event.detail;
+      // Update refresh interval
+      if (this.pollInterval) {
+        clearInterval(this.pollInterval);
+        this.pollInterval = setInterval(
+          this.refresh,
+          this.dashboardDisplay.refreshInterval,
+        );
+      }
     },
   },
 };
