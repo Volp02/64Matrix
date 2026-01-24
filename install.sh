@@ -58,8 +58,26 @@ cd ..
 # Install dependencies
 pip install -r requirements.txt
 
-# 6. Build Frontend
-echo -e "${GREEN}[6/6] Building Frontend...${NC}"
+# 6. Performance Optimizations for RGB Matrix
+echo -e "${GREEN}[6/7] Configuring performance optimizations...${NC}"
+
+# Disable onboard audio (required for stable matrix operation)
+if ! grep -q "^blacklist snd_bcm2835" /etc/modprobe.d/blacklist-rgb-matrix.conf 2>/dev/null; then
+    echo "Disabling onboard audio driver..."
+    echo "blacklist snd_bcm2835" | sudo tee -a /etc/modprobe.d/blacklist-rgb-matrix.conf
+fi
+
+# Isolate CPU cores for better performance (optional but recommended)
+if ! grep -q "isolcpus" /boot/firmware/cmdline.txt 2>/dev/null && ! grep -q "isolcpus" /boot/cmdline.txt 2>/dev/null; then
+    echo -e "${GREEN}Tip: For best performance, consider isolating CPU cores.${NC}"
+    echo -e "Add 'isolcpus=3' to /boot/firmware/cmdline.txt (or /boot/cmdline.txt on older systems)"
+    echo -e "This reserves CPU core 3 for the matrix, reducing jitter."
+fi
+
+echo -e "${GREEN}Performance optimizations applied. Reboot required for audio changes to take effect.${NC}"
+
+# 7. Build Frontend
+echo -e "${GREEN}[7/7] Building Frontend...${NC}"
 cd web
 npm install
 npm run build
@@ -67,3 +85,6 @@ cd ..
 
 echo -e "${GREEN}Installation Complete!${NC}"
 echo -e "You can now run the application with: ${GREEN}./run.sh${NC}"
+echo -e ""
+echo -e "${RED}⚠️  IMPORTANT: Please reboot your Raspberry Pi for audio driver changes to take effect!${NC}"
+echo -e "Run: ${GREEN}sudo reboot${NC}"
