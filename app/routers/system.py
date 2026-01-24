@@ -155,3 +155,44 @@ def get_preview(request: Request):
         buffer = io.BytesIO()
         error_img.resize((256, 256), Image.Resampling.NEAREST).save(buffer, format='PNG')
         return Response(content=buffer.getvalue(), media_type="image/png")
+
+@router.get("/stats")
+def get_system_stats():
+    """
+    Get system performance statistics (CPU, RAM, temperature).
+    Returns metrics for monitoring system health.
+    """
+    try:
+        import psutil
+        
+        stats = {
+            "cpu_percent": round(psutil.cpu_percent(interval=0.1), 1),
+            "ram_percent": round(psutil.virtual_memory().percent, 1),
+            "ram_used_mb": round(psutil.virtual_memory().used / (1024 * 1024), 1),
+            "ram_total_mb": round(psutil.virtual_memory().total / (1024 * 1024), 1),
+        }
+        
+        # Try to get CPU temperature (Raspberry Pi specific)
+        try:
+            temps = psutil.sensors_temperatures()
+            if 'cpu_thermal' in temps:
+                stats["cpu_temp"] = round(temps['cpu_thermal'][0].current, 1)
+            elif 'coretemp' in temps:
+                stats["cpu_temp"] = round(temps['coretemp'][0].current, 1)
+            else:
+                stats["cpu_temp"] = None
+        except (AttributeError, KeyError):
+            # Temperature sensors not available
+            stats["cpu_temp"] = None
+        
+        return stats
+    except Exception as e:
+        logger.error(f"Error getting system stats: {e}")
+        return {
+            "cpu_percent": 0,
+            "ram_percent": 0,
+            "ram_used_mb": 0,
+            "ram_total_mb": 0,
+            "cpu_temp": None
+        }
+

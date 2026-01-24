@@ -11,6 +11,9 @@ export default {
   getSystemStatus() {
     return apiClient.get('/system/status');
   },
+  getSystemStats() {
+    return apiClient.get('/system/stats');
+  },
   updateSettings(settings) {
     return apiClient.post('/system/settings', settings);
   },

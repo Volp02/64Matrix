@@ -5,3 +5,4 @@ RGBMatrixEmulator
 Pillow
 python-multipart
 aiofiles
+psutil

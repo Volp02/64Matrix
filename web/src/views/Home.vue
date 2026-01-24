@@ -66,6 +66,31 @@
       </div>
     </div>
 
+    <!-- System Performance Section -->
+    <div class="status-card" v-if="dashboardDisplay.showSystemInfo && systemStats">
+      <h3>System Performance</h3>
+      <div class="stats-grid">
+        <div class="stat-item">
+          <span class="stat-label">CPU Usage</span>
+          <span class="stat-value" :class="getStatClass(systemStats.cpu_percent, 80, 90)">
+            {{ systemStats.cpu_percent }}%
+          </span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">RAM Usage</span>
+          <span class="stat-value" :class="getStatClass(systemStats.ram_percent, 80, 90)">
+            {{ systemStats.ram_percent }}% ({{ systemStats.ram_used_mb }} / {{ systemStats.ram_total_mb }} MB)
+          </span>
+        </div>
+        <div class="stat-item" v-if="systemStats.cpu_temp !== null">
+          <span class="stat-label">CPU Temp</span>
+          <span class="stat-value" :class="getTempClass(systemStats.cpu_temp)">
+            {{ systemStats.cpu_temp }}°C
+          </span>
+        </div>
+      </div>
+    </div>
+    
     <SystemControls :settings="settings" @update="updateSettings" />
   </div>
 </template>
@@ -96,6 +121,7 @@ export default {
         showSystemInfo: true,
         refreshInterval: 2000,
       },
+      systemStats: null,
     };
   },
   async mounted() {
@@ -142,6 +168,12 @@ export default {
         const statusRes = await api.getSystemStatus();
         this.settings = statusRes.data;
         this.status = statusRes.data;
+        
+        // Fetch system stats if enabled
+        if (this.dashboardDisplay.showSystemInfo) {
+          const statsRes = await api.getSystemStats();
+          this.systemStats = statsRes.data;
+        }
       } catch (e) {
         console.error("Failed to fetch data", e);
       }
@@ -175,6 +207,16 @@ export default {
           this.dashboardDisplay.refreshInterval,
         );
       }
+    },
+    getStatClass(value, warning, critical) {
+      if (value >= critical) return 'fps-poor';
+      if (value >= warning) return 'fps-warning';
+      return 'fps-good';
+    },
+    getTempClass(temp) {
+      if (temp >= 80) return 'fps-poor';
+      if (temp >= 70) return 'fps-warning';
+      return 'fps-good';
     },
   },
 };
@@ -299,5 +341,35 @@ export default {
 
 .fps-poor {
   color: #e74c3c !important;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: #1a1a1a;
+  border-radius: 4px;
+  border: 1px solid #444;
+}
+
+.stat-label {
+  color: #888;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-value {
+  font-size: 1.3rem;
+  font-weight: bold;
+  transition: color 0.3s ease;
 }
 </style>
