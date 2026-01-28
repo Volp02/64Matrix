@@ -268,10 +268,7 @@
 
 ### 📝 Future Enhancements (Optional)
 
-- [ ] OTA updates via GitHub
-- [ ] More animation examples (inspired by Tidbyt)
-- [ ] Scene transition effects
-- [ ] Audio-reactive scenes
+- [✅] OTA updates via DockerHub
 - [ ] Multi-matrix support
 - [ ] Scene scheduling (time-based playlists)
 - [ ] WebSocket for real-time updates (instead of polling)

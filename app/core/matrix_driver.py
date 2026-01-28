@@ -38,6 +38,9 @@ class MatrixDriver:
         
         # If emulated, we might want to relax some hardware specific settings or keep them as is
         # The emulator usually ignores hardware specific options safely
+        self.options.gpio_slowdown = 2  # Fixes flickering on faster Pis (Pi 3/4/Zero 2)
+        self.options.pwm_lsb_nanoseconds = 130 # Reduces low-brightness ghosting
+        self.options.scan_mode = 0 # Standard progressive scan
         
         self.matrix = RGBMatrix(options=self.options)
         self._raw_canvas = self.matrix.CreateFrameCanvas()
