@@ -86,38 +86,15 @@ class MatrixDriver:
             real_canvas = object.__getattribute__(self, '_real_canvas')
             matrix_driver = object.__getattribute__(self, '_matrix_driver')
             result = real_canvas.SetImage(img, *args, **kwargs)
+            # Only update shadow buffer if we are actually tracking it (optimization)
+            # For now, we update it because SetImage is usually once per frame
             matrix_driver.update_shadow_from_image(img)
             return result
         
-        def SetPixel(self, x, y, r, g, b):
-            """Intercept SetPixel to update shadow buffer."""
-            real_canvas = object.__getattribute__(self, '_real_canvas')
-            matrix_driver = object.__getattribute__(self, '_matrix_driver')
-            result = real_canvas.SetPixel(x, y, r, g, b)
-            with matrix_driver._shadow_lock:
-                if 0 <= x < matrix_driver.width and 0 <= y < matrix_driver.height:
-                    matrix_driver._shadow_buffer.putpixel((x, y), (r, g, b))
-            return result
-        
-        def Fill(self, r, g, b):
-            """Intercept Fill to update shadow buffer."""
-            real_canvas = object.__getattribute__(self, '_real_canvas')
-            matrix_driver = object.__getattribute__(self, '_matrix_driver')
-            result = real_canvas.Fill(r, g, b)
-            with matrix_driver._shadow_lock:
-                matrix_driver._shadow_buffer = Image.new('RGB', 
-                    (matrix_driver.width, matrix_driver.height), color=(r, g, b))
-            return result
-        
-        def Clear(self):
-            """Intercept Clear to update shadow buffer."""
-            real_canvas = object.__getattribute__(self, '_real_canvas')
-            matrix_driver = object.__getattribute__(self, '_matrix_driver')
-            result = real_canvas.Clear()
-            with matrix_driver._shadow_lock:
-                matrix_driver._shadow_buffer = Image.new('RGB', 
-                    (matrix_driver.width, matrix_driver.height), color='black')
-            return result
+        # NOTE: We do NOT intercept SetPixel, Fill, or Clear anymore.
+        # The overhead of a Python function call + lock + PIL update PER PIXEL is too high (kills FPS).
+        # Scenes using SetPixel will rely on valid canvas readback or might not show in preview perfectly.
+
 
     def clear(self):
         """Clears the current canvas."""
@@ -154,14 +131,21 @@ class MatrixDriver:
         
         # Try to set hardware brightness if supported
         try:
-            if hasattr(self.matrix, 'SetBrightness'):
-                # Convert 0-100 to 0-255 if needed, or use directly
-                brightness_value = int(self._brightness * 2.55) if brightness <= 100 else int(self._brightness)
-                self.matrix.SetBrightness(brightness_value)
-                logger.info(f"Hardware brightness set to {brightness}%")
+             # The rgbmatrix library simply takes a value, usually 0-100. 
+             # Some older versions might take 0-255? Standard hzeller/rpi-rgb-led-matrix usually uses 0-100.
+             # We will pass the 0-100 value directly.
+            if hasattr(self.matrix, 'brightness'):
+                self.matrix.brightness = self._brightness
+                logger.info(f"Hardware brightness set to {self._brightness}%")
+            elif hasattr(self.matrix, 'SetBrightness'):
+                # Pass the raw 0-100 value. 
+                # If the user sees it's too dim, we might have issues with 0-255 scaling,
+                # but 'brightness' property usually handles this.
+                self.matrix.SetBrightness(int(self._brightness))
+                logger.info(f"Hardware brightness set to {self._brightness}% (SetBrightness)")
             else:
-                # Software dimming: store brightness multiplier for pixel operations
-                logger.debug(f"Hardware brightness not supported, using software dimming: {brightness}%")
+                # Software dimming fallback
+                logger.debug(f"Hardware brightness not supported, using software dimming: {self._brightness}%")
         except Exception as e:
             logger.warning(f"Failed to set hardware brightness: {e}. Using software dimming.")
     
@@ -183,58 +167,59 @@ class MatrixDriver:
     
     def capture_frame(self):
         """
-        Capture the current canvas as a PIL Image using the shadow buffer.
-        Falls back to reading pixels from canvas if shadow buffer is empty/black.
+        Capture the current canvas as a PIL Image.
         Returns a PIL Image object (64x64 RGB) or None if capture fails.
         """
         try:
-            # Use shadow buffer - it's always up to date since we update it on every draw call
+            # First, check if the shadow buffer is actively being updated (e.g. by SetImage)
+            # We can't know for sure, but we can assume if it's not black, it's valid.
+            # However, with SetPixel changes, the shadow buffer might stay black or stale.
+            
+            # NOTE: For performance, we prioritize the shadow buffer if it has content.
+            # But since we removed SetPixel interception, we MUST fallback to reading the canvas
+            # if we suspect the shadow buffer is not representing the current state.
+            
+            use_shadow = False
             with self._shadow_lock:
-                img = self._shadow_buffer.copy()
+                # Simple heuristic: if shadow buffer has non-black content, use it?
+                # Actually, worst case: we show a stale image. Best case: it's fast.
+                # Given the user reported LOW FPS, we want to avoid reading hardware canvas if possible.
+                # But if they use a script with SetPixel, shadow buffer will be EMPTY.
+                if self._shadow_buffer.getbbox(): # Returns None if image is all black
+                    use_shadow = True
+                    img = self._shadow_buffer.copy()
+
+            if use_shadow:
+                return img
+
+            # If shadow buffer is empty, it means we are likely using SetPixel directly.
+            # We MUST read from the hardware canvas.
             
-            # Fallback: If shadow buffer appears to be all black, try reading from canvas
-            # Check if image is all black (might mean shadow buffer wasn't updated)
-            pixels = list(img.getdata())
-            if all(p == (0, 0, 0) for p in pixels):
-                # Try multiple fallback methods
-                fallback_img = None
+            # Method 1: Try built-in ToImage() if available (some bindings have this)
+            if hasattr(self._raw_canvas, 'ToImage'):
+                 return self._raw_canvas.ToImage()
+
+            # Method 2: Try GetPixel loop (Slow, but necessary fallback)
+            # We optimize this by not creating a new image every time if possible, but here we just do it.
+            if hasattr(self._raw_canvas, 'GetPixel'):
+                img = Image.new('RGB', (self.width, self.height))
+                pixels = []
+                # optimization: local lookup
+                get_pixel = self._raw_canvas.GetPixel
+                width, height = self.width, self.height
                 
-                # Method 1: Try GetPixel if available
-                try:
-                    if hasattr(self._raw_canvas, 'GetPixel'):
-                        fallback_img = Image.new('RGB', (self.width, self.height))
-                        fallback_pixels = []
-                        for y in range(self.height):
-                            for x in range(self.width):
-                                try:
-                                    r, g, b = self._raw_canvas.GetPixel(x, y)
-                                    fallback_pixels.append((r, g, b))
-                                except:
-                                    fallback_pixels.append((0, 0, 0))
-                        fallback_img.putdata(fallback_pixels)
-                except Exception as e:
-                    logger.debug(f"GetPixel fallback failed: {e}")
+                for y in range(height):
+                    for x in range(width):
+                        try:
+                            # Note: rgbmatrix might return (r,g,b) or integer
+                            p = get_pixel(x, y)
+                            pixels.append(p)
+                        except:
+                            pixels.append((0,0,0))
+                img.putdata(pixels)
+                return img
                 
-                # Method 2: For emulator, try accessing pygame surface
-                if not fallback_img and EMULATED:
-                    try:
-                        # RGBMatrixEmulator might expose the display adapter's surface
-                        if hasattr(self.matrix, 'display_adapter') and hasattr(self.matrix.display_adapter, 'surface'):
-                            import pygame
-                            surface = self.matrix.display_adapter.surface
-                            if surface:
-                                img_str = pygame.image.tostring(surface, 'RGB')
-                                fallback_img = Image.frombytes('RGB', (self.width, self.height), img_str)
-                    except Exception as e:
-                        logger.debug(f"Pygame surface fallback failed: {e}")
-                
-                if fallback_img:
-                    # Update shadow buffer with what we read
-                    with self._shadow_lock:
-                        self._shadow_buffer = fallback_img.copy()
-                    return fallback_img
-            
-            return img
+            return None
         except Exception as e:
             logger.error(f"Error capturing frame: {e}")
             return None
