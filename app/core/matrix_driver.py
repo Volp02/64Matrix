@@ -74,7 +74,8 @@ class MatrixDriver:
         
         def __getattribute__(self, name):
             # Handle our own attributes and intercepted methods
-            if name in ('_real_canvas', '_matrix_driver', 'SetImage', 'SetPixel', 'Fill', 'Clear'):
+            # NOTE: We only intercept SetImage now. Others delegate to real canvas.
+            if name in ('_real_canvas', '_matrix_driver', 'SetImage'):
                 return object.__getattribute__(self, name)
             
             # For all other attributes, delegate to real canvas
