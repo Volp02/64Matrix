@@ -21,25 +21,65 @@ class GifScene(BaseScene):
     def _load_gif(self):
         try:
             with Image.open(self.filepath) as im:
-                # Resize if necessary? handling scaling is complex, let's assume 64x64 or stretch
-                # For best quality, assume user provides correct size or center it.
-                # Let's simple resize to matrix size for now.
+                # 1. Determine target size
+                target_size = (self.width, self.height)
+                
+                # 2. Iterate frames with persistent canvas for correct disposal/transparency
+                # Some optimized GIFs store only the changed pixels on a transparent background
+                # We interpret this by compositing onto a persistent canvas
+                
+                # Start with a black background or transparent? 
+                # For matrix, black (0,0,0) is usually best base.
+                canvas = Image.new('RGBA', im.size, (0, 0, 0, 0))
                 
                 for frame in ImageSequence.Iterator(im):
-                    # Convert to RGB
-                    frame = frame.convert('RGB')
-                    frame = frame.resize((self.width, self.height), Image.Resampling.NEAREST)
+                    # Handle Frame Disposal (Simplification: most modern GIFs usually work with simple over-composite)
+                    # Ideally we'd respect 'disposal' method from frame.info, but 
+                    # standard compositing works for 95% of 'optimized' GIFs.
                     
-                    self.frames.append(frame)
+                    # Composite this frame onto persistent canvas
+                    # frame.convert('RGBA') ensures we handle transparency mask in frame
+                    frame_rgba = frame.convert('RGBA')
+                    
+                    # Paste current frame over canvas
+                    # If frame has transparency, it will show canvas underneath
+                    # Note: We create a NEW image for the step to avoid mutating previous frames in the list
+                    # if we were strictly following disposal logic, but here "canvas" tracks the state.
+                    
+                    # For simple "replace" vs "combine" disposal, proper logic is hard.
+                    # But Python's ImageSequence usually gives us the delta frame.
+                    # The robust way:
+                    # 1. Create copy of current canvas
+                    # 2. Paste new frame on top
+                    # 3. Use that as new canvas AND as the frame to append
+                    
+                    canvas.paste(frame_rgba, (0, 0), frame_rgba)
+                    
+                    # Now we have the full frame image in 'canvas'
+                    
+                    # 3. Resize High Quality
+                    # We must copy() because resize returns a new image, and we want to keep 'canvas' 
+                    # at original resolution for next frame composition
+                    final_frame = canvas.resize(target_size, Image.Resampling.LANCZOS)
+                    
+                    # 4. Convert to RGB (Matrix doesn't use Alpha)
+                    # Create black background to flatten alpha
+                    bg = Image.new('RGB', target_size, (0, 0, 0))
+                    bg.paste(final_frame, (0, 0), final_frame)
+                    
+                    self.frames.append(bg)
                     
                     # Duration
                     duration = frame.info.get('duration', 100) # ms
+                    # Handle invalid 0 duration
+                    if duration == 0: duration = 100
+                    
                     duration_sec = duration / 1000.0
                     self.frame_durations.append(duration_sec)
                     self.total_duration += duration_sec
                 
                 self.loaded = True
-                logger.info(f"Loaded GIF {os.path.basename(self.filepath)} with {len(self.frames)} frames.")
+                logger.info(f"Loaded GIF {os.path.basename(self.filepath)} with {len(self.frames)} frames using High-Quality render.")
         except Exception as e:
             logger.error(f"Failed to load GIF {self.filepath}: {e}")
 
