@@ -81,23 +81,8 @@ class Particle:
         elif self.y > height - margin:
             self.y = height - margin
             self.vy *= -0.7
-    
-    def draw(self, canvas, width, height):
-        """Draw particle as a small circle"""
-        px = int(self.x)
-        py = int(self.y)
-        
-        r, g, b = self.color
-        
-        # Draw small circle (2x2 pixels)
-        for dy in range(-self.radius, self.radius + 1):
-            for dx in range(-self.radius, self.radius + 1):
-                if dx*dx + dy*dy <= self.radius*self.radius:
-                    x_pos = px + dx
-                    y_pos = py + dy
-                    if 0 <= x_pos < width and 0 <= y_pos < height:
-                        canvas.SetPixel(x_pos, y_pos, r, g, b)
 
+    # Note: draw method moved to main scene class for batch processing performance
 
 class ParticleSwarm(BaseScene):
     def __init__(self, matrix, state_manager):
@@ -166,37 +151,44 @@ class ParticleSwarm(BaseScene):
             self.spawn_particle()
     
     def draw(self, canvas):
-        # Dark background
-        for y in range(self.height):
-            for x in range(self.width):
-                canvas.SetPixel(x, y, 10, 10, 20)  # Dark blue-black
+        from PIL import Image, ImageDraw
         
-        # Draw all particles
-        for particle in self.particles:
-            particle.draw(canvas, self.width, self.height)
+        # 1. Create base image for frame (fills background instantly)
+        # Dark blue-black background
+        img = Image.new('RGB', (self.width, self.height), (10, 10, 20))
+        draw = ImageDraw.Draw(img)
         
-        # Optional: Draw connections between nearby particles
+        # 2. Draw connections (Lines)
+        # Optimizing: Draw lines before dots so dots are on top
         for i, p1 in enumerate(self.particles):
             for p2 in self.particles[i+1:]:
                 dx = p2.x - p1.x
                 dy = p2.y - p1.y
-                dist = math.sqrt(dx*dx + dy*dy)
+                dist_sq = dx*dx + dy*dy
                 
                 # Draw faint line if particles are close
-                if dist < 15.0:
+                if dist_sq < 225.0: # 15^2
+                    dist = math.sqrt(dist_sq)
                     alpha = max(0, min(1, 1.0 - dist / 15.0))
-                    steps = int(dist)
-                    if steps > 0:
-                        for s in range(steps + 1):
-                            t = s / steps
-                            px = int(p1.x + dx * t)
-                            py = int(p1.y + dy * t)
-                            if 0 <= px < self.width and 0 <= py < self.height:
-                                # Blend with background
-                                r = int(10 + (p1.color[0] + p2.color[0]) / 2 * alpha * 0.3)
-                                g = int(10 + (p1.color[1] + p2.color[1]) / 2 * alpha * 0.3)
-                                b = int(20 + (p1.color[2] + p2.color[2]) / 2 * alpha * 0.3)
-                                r = max(0, min(255, r))
-                                g = max(0, min(255, g))
-                                b = max(0, min(255, b))
-                                canvas.SetPixel(px, py, r, g, b)
+                    
+                    # Blend with background
+                    r = int(10 + (p1.color[0] + p2.color[0]) / 2 * alpha * 0.3)
+                    g = int(10 + (p1.color[1] + p2.color[1]) / 2 * alpha * 0.3)
+                    b = int(20 + (p1.color[2] + p2.color[2]) / 2 * alpha * 0.3)
+                    
+                    # Draw Line
+                    draw.line([(p1.x, p1.y), (p2.x, p2.y)], fill=(r,g,b), width=1)
+        
+        # 3. Draw particles (Ellipses)
+        for particle in self.particles:
+            r, g, b = particle.color
+            bbox = [
+                particle.x - particle.radius, 
+                particle.y - particle.radius, 
+                particle.x + particle.radius, 
+                particle.y + particle.radius
+            ]
+            draw.ellipse(bbox, fill=(r,g,b))
+            
+        # 4. Push to matrix
+        canvas.SetImage(img)

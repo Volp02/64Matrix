@@ -1,7 +1,7 @@
 from app.core.base_scene import BaseScene
 import random
 import math
-
+from PIL import Image, ImageDraw
 
 class Flame:
     """Persistent flame that flickers in place - never disappears"""
@@ -49,7 +49,6 @@ class Flame:
         self.x = self.base_x + sway
         
     def is_alive(self):
-        # Flames NEVER die
         return True
     
     def get_current_width(self, rel_height):
@@ -162,7 +161,7 @@ class WoodLog:
         )
         self.char_level = random.uniform(0.3, 0.7)
         
-        # Calculate pixels
+        # Calculate pixels (Still used for spawn points/collisions)
         self.pixels = self._calculate_pixels()
         self.ember_phases = {p: random.uniform(0, math.pi * 2) for p in self.pixels}
         
@@ -258,6 +257,7 @@ class WoodLog:
 class Fire(BaseScene):
     """
     Dynamic campfire with night scene background - trees, lake, stars.
+    Optimized to use PIL for rendering.
     """
     
     def __init__(self, matrix, state_manager):
@@ -273,8 +273,6 @@ class Fire(BaseScene):
         
         # Generate background elements
         self.stars = self._generate_stars()
-        self.mountains = self._generate_mountains()
-        self.lake_pixels = self._generate_lake_shape()
         
         # Create wood arrangement
         self.logs = self._create_wood_arrangement()
@@ -301,8 +299,8 @@ class Fire(BaseScene):
         self.spark_timer = 0.0
         self.smoke_timer = 0.0
         
-        # Glow buffer for flame rendering
-        self.glow_buffer = {}
+        # Pre-render static background
+        self.background_img = self._prerender_background()
     
     def _generate_stars(self):
         """Generate random star positions in the sky"""
@@ -310,83 +308,22 @@ class Fire(BaseScene):
         for _ in range(35):  # Number of stars
             x = random.randint(0, self.width - 1)
             y = random.randint(0, self.horizon_y - 5)
+            # Storing color directly for performance
             brightness = random.uniform(0.4, 1.0)
-            twinkle_speed = random.uniform(1.5, 4.0)
-            twinkle_phase = random.uniform(0, math.pi * 2)
+            sr = int(255 * brightness)
+            sg = int(250 * brightness)
+            sb = int(220 * brightness)
+            
             stars.append({
                 'x': x,
                 'y': y,
                 'brightness': brightness,
-                'twinkle_speed': twinkle_speed,
-                'twinkle_phase': twinkle_phase
+                'color': (sr, sg, sb),
+                'twinkle_speed': random.uniform(1.5, 4.0),
+                'twinkle_phase': random.uniform(0, math.pi * 2)
             })
         return stars
-    
-    def _generate_mountains(self):
-        """Generate mountain silhouettes with snow caps"""
-        mountains = []
-        
-        # Mountain positions: (center_x, height, width_factor)
-        mountain_data = [
-            (5, 14, 1.2),
-            (15, 20, 1.0),
-            (25, 12, 0.9),
-            (42, 15, 1.1),
-            (52, 22, 1.0),
-            (60, 11, 0.8),
-        ]
-        
-        for center_x, height, width_factor in mountain_data:
-            mountain_pixels = []  # (x, y, is_snow)
-            
-            # Create mountain shape (triangle)
-            for y_offset in range(height):
-                # Width increases toward bottom
-                rel_height = y_offset / height
-                width = int((1 + rel_height * height * 0.4) * width_factor)
-                mountain_y = self.horizon_y - height + y_offset
-                
-                # Snow line - top 25% of mountain has snow
-                is_snow = rel_height < 0.25
-                
-                for dx in range(-width, width + 1):
-                    mountain_x = center_x + dx
-                    if 0 <= mountain_x < self.width and 0 <= mountain_y < self.height:
-                        # Add some jaggedness to snow line
-                        snow_threshold = 0.25 + random.uniform(-0.05, 0.05)
-                        pixel_is_snow = rel_height < snow_threshold
-                        mountain_pixels.append((mountain_x, mountain_y, pixel_is_snow))
-            
-            mountains.append(mountain_pixels)
-        
-        return mountains
-    
-    def _generate_lake_shape(self):
-        """Generate a natural curved lake shape"""
-        lake_pixels = set()
-        
-        # Lake is an irregular oval/blob shape
-        lake_center_x = self.width // 2
-        lake_center_y = (self.lake_start_y + self.lake_end_y) // 2
-        lake_width = 22  # Half-width
-        lake_height = (self.lake_end_y - self.lake_start_y) // 2
-        
-        for y in range(self.lake_start_y, self.lake_end_y):
-            for x in range(self.width):
-                # Ellipse equation with some noise for natural shape
-                dx = (x - lake_center_x) / lake_width
-                dy = (y - lake_center_y) / max(1, lake_height)
-                
-                # Add shoreline variation
-                noise = math.sin(x * 0.3) * 0.15 + math.sin(x * 0.7) * 0.1
-                
-                dist = dx * dx + dy * dy + noise
-                
-                if dist < 1.0:
-                    lake_pixels.add((x, y))
-        
-        return lake_pixels
-        
+
     def _create_wood_arrangement(self):
         """Create campfire wood logs"""
         logs = []
@@ -406,12 +343,79 @@ class Fire(BaseScene):
         logs.append(WoodLog(cx + 16, base_y + 11, cx - 10, base_y + 0, 2))
         
         return logs
+
+    def _prerender_background(self):
+        """Pre-render static elements (Sky, Lake shape, Ground, Mountains)"""
+        img = Image.new('RGB', (self.width, self.height))
+        pixels = img.load()
+        
+        # 1. Sky Gradient
+        for y in range(self.horizon_y):
+            gradient = y / self.horizon_y
+            sky_r = int(5 + gradient * 8)
+            sky_g = int(8 + gradient * 12)
+            sky_b = int(25 + gradient * 20)
+            for x in range(self.width):
+                pixels[x, y] = (sky_r, sky_g, sky_b)
+                
+        # 2. Lake and Ground
+        # Generative lake shape
+        lake_center_x = self.width // 2
+        lake_center_y = (self.lake_start_y + self.lake_end_y) // 2
+        lake_width = 22
+        lake_height = (self.lake_end_y - self.lake_start_y) // 2
+        
+        for y in range(self.lake_start_y, self.height):
+            for x in range(self.width):
+                # Check for Lake
+                in_lake = False
+                if y < self.lake_end_y:
+                    dx = (x - lake_center_x) / lake_width
+                    dy = (y - lake_center_y) / max(1, lake_height)
+                    noise = math.sin(x * 0.3) * 0.15 + math.sin(x * 0.7) * 0.1
+                    dist = dx * dx + dy * dy + noise
+                    if dist < 1.0:
+                        in_lake = True
+                
+                if in_lake:
+                    # Lake water - darker toward edges/bottom
+                    depth = (y - self.lake_start_y) / max(1, self.lake_end_y - self.lake_start_y)
+                    lake_r = int(4 + (1 - depth) * 6)
+                    lake_g = int(6 + (1 - depth) * 10)
+                    lake_b = int(20 + (1 - depth) * 18)
+                    pixels[x, y] = (lake_r, lake_g, lake_b)
+                else:
+                    # Ground/shore - dark earth tones
+                    pixels[x, y] = (10, 8, 5)
+
+        # 3. Mountains
+        # Mountain positions: (center_x, height, width_factor)
+        mountain_data = [
+            (5, 14, 1.2), (15, 20, 1.0), (25, 12, 0.9),
+            (42, 15, 1.1), (52, 22, 1.0), (60, 11, 0.8),
+        ]
+        
+        for center_x, height, width_factor in mountain_data:
+            for y_offset in range(height):
+                rel_height = y_offset / height
+                width = int((1 + rel_height * height * 0.4) * width_factor)
+                mountain_y = self.horizon_y - height + y_offset
+                is_snow = rel_height < 0.25
+                
+                for dx in range(-width, width + 1):
+                    mountain_x = center_x + dx
+                    if 0 <= mountain_x < self.width and 0 <= mountain_y < self.height:
+                        snow_threshold = 0.25 + random.uniform(-0.05, 0.05)
+                        pixel_is_snow = rel_height < snow_threshold
+                        
+                        color = (45, 50, 55) if pixel_is_snow else (5, 5, 8)
+                        pixels[mountain_x, mountain_y] = color
+                        
+        return img
     
     def enter(self, state_manager):
         """Create all flames - they persist forever"""
-        # Clear any existing flames
         self.flames = []
-        # Create a good number of persistent flames
         for _ in range(50):
             self._spawn_flame()
     
@@ -420,7 +424,6 @@ class Fire(BaseScene):
         if not self.all_spawn_points:
             return
             
-        # Weight spawn points toward center
         weights = []
         for x, y in self.all_spawn_points:
             dist = abs(x - self.fire_center_x)
@@ -428,22 +431,13 @@ class Fire(BaseScene):
             weights.append(weight)
         
         # Weighted random selection
-        total = sum(weights)
-        r = random.uniform(0, total)
-        cumulative = 0
-        chosen = self.all_spawn_points[0]
-        for i, (point, w) in enumerate(zip(self.all_spawn_points, weights)):
-            cumulative += w
-            if r <= cumulative:
-                chosen = point
-                break
+        # (Simplified logic for performance)
+        chosen = random.choices(self.all_spawn_points, weights=weights, k=1)[0]
         
         x, y = chosen
-        # Add slight randomness to spawn position
         x += random.uniform(-1.5, 1.5)
         y += random.uniform(-1, 1)
         
-        # Center flames are more intense
         dist = abs(x - self.fire_center_x)
         intensity = max(0.5, 1.0 - dist / 30.0)
         intensity *= random.uniform(0.8, 1.2)
@@ -451,17 +445,13 @@ class Fire(BaseScene):
         self.flames.append(Flame(x, y, intensity))
     
     def _spawn_spark(self):
-        """Spawn a spark from within a flame"""
         if self.flames:
             flame = random.choice(self.flames)
-            # Spawn from somewhere along the flame's height
             spark_y = flame.base_y - random.uniform(3, flame.current_height * 0.7)
             self.sparks.append(Spark(flame.x, spark_y))
     
     def _spawn_smoke(self):
-        """Spawn smoke above flames"""
         if self.flames:
-            # Pick a random flame and spawn smoke above it
             flame = random.choice(self.flames)
             smoke_y = flame.base_y - flame.current_height - 2
             self.smoke_particles.append(Smoke(flame.x + random.uniform(-3, 3), smoke_y))
@@ -469,216 +459,120 @@ class Fire(BaseScene):
     def update(self, dt):
         self.time += dt
         
-        # Update all persistent flames (they never die)
         for flame in self.flames:
             flame.update(dt)
-        
-        # Ensure we always have enough flames
         if len(self.flames) < 50:
             self._spawn_flame()
         
-        # Spawn sparks
         self.spark_timer += dt
         if self.spark_timer > 0.1:
             self.spark_timer = 0
             if random.random() < 0.4:
                 self._spawn_spark()
         
-        # Spawn smoke - more frequently for atmosphere
         self.smoke_timer += dt
         if self.smoke_timer > 0.08:
             self.smoke_timer = 0
             if random.random() < 0.6:
                 self._spawn_smoke()
         
-        # Update sparks (these can die)
         for spark in self.sparks:
             spark.update(dt)
         self.sparks = [s for s in self.sparks if s.is_alive()]
         
-        # Update smoke (these can die)
         for smoke in self.smoke_particles:
             smoke.update(dt)
         self.smoke_particles = [s for s in self.smoke_particles if s.is_alive()]
         
-        # Update wood embers
         for log in self.logs:
             log.update_embers(dt)
         
-        # Update star twinkle
         for star in self.stars:
             star['twinkle_phase'] += star['twinkle_speed'] * dt
         
-        # Limit sparks and smoke
-        if len(self.sparks) > 20:
-            self.sparks = self.sparks[-20:]
-        if len(self.smoke_particles) > 40:  # More smoke allowed
-            self.smoke_particles = self.smoke_particles[-40:]
-    
-    def _draw_flame(self, canvas, flame):
-        """Draw a single persistent flame with flickering shape"""
-        base_y = int(flame.base_y)
-        height = int(flame.current_height)
-        
-        if height <= 0:
-            return
-        
-        # Draw flame from base to tip
-        for dy in range(height):
-            y = base_y - dy
-            if y < 0 or y >= self.height:
-                continue
-            
-            # Relative height (0 at base, 1 at tip)
-            rel_h = dy / max(1, height)
-            
-            # Get width at this height (includes flickering)
-            width = flame.get_current_width(rel_h)
-            
-            # Get color for this height
-            color = flame.get_color_at_height(rel_h)
-            
-            # Horizontal position - flame.x already has base sway
-            # Add additional per-slice waviness for organic look
-            slice_sway = math.sin(flame.sway_phase * 1.5 + dy * 0.25) * (rel_h * 1.5)
-            center_x = flame.x + slice_sway
-            
-            # Draw horizontal slice of flame
-            half_width = width / 2
-            for dx_f in range(-int(half_width + 1), int(half_width + 2)):
-                x = int(center_x + dx_f)
-                if 0 <= x < self.width:
-                    # Fade at edges - gentler fade for fuller flames
-                    edge_dist = abs(dx_f) / max(0.5, half_width)
-                    if edge_dist <= 1.2:
-                        edge_fade = max(0.35, 1.0 - edge_dist * 0.35)
-                        r = int(color[0] * edge_fade)
-                        g = int(color[1] * edge_fade)
-                        b = int(color[2] * edge_fade)
-                        
-                        # Additive blending with existing glow
-                        key = (x, y)
-                        if key in self.glow_buffer:
-                            old = self.glow_buffer[key]
-                            r = min(255, old[0] + r)
-                            g = min(255, old[1] + g)
-                            b = min(255, old[2] + b)
-                        self.glow_buffer[key] = (r, g, b)
-    
+        if len(self.sparks) > 20: self.sparks = self.sparks[-20:]
+        if len(self.smoke_particles) > 40: self.smoke_particles = self.smoke_particles[-40:]
+
     def draw(self, canvas):
-        # Clear glow buffer
-        self.glow_buffer = {}
+        # Start with pre-rendered background
+        img = self.background_img.copy()
+        draw = ImageDraw.Draw(img)
         
-        # === BACKGROUND: Night Sky ===
-        # Dark blue gradient sky
-        for y in range(self.horizon_y):
-            # Gradient from darker at top to slightly lighter near horizon
-            gradient = y / self.horizon_y
-            sky_r = int(5 + gradient * 8)
-            sky_g = int(8 + gradient * 12)
-            sky_b = int(25 + gradient * 20)
-            for x in range(self.width):
-                canvas.SetPixel(x, y, sky_r, sky_g, sky_b)
-        
-        # === STARS in sky ===
+        # 1. Update Stars (Draw over background)
         for star in self.stars:
-            x, y = star['x'], star['y']
             # Twinkle effect
             twinkle = (math.sin(star['twinkle_phase']) * 0.3 + 0.7)
-            brightness = star['brightness'] * twinkle
+            # Recompute color here to apply twinkle
+            r = int(star['color'][0] * twinkle)
+            g = int(star['color'][1] * twinkle)
+            b = int(star['color'][2] * twinkle)
+            draw.point((star['x'], star['y']), fill=(r, g, b))
             
-            # Star color (slight yellow-white)
-            sr = int(255 * brightness)
-            sg = int(250 * brightness)
-            sb = int(220 * brightness)
-            
-            if 0 <= x < self.width and 0 <= y < self.height:
-                canvas.SetPixel(x, y, sr, sg, sb)
-        
-        # === GROUND AND LAKE AREA ===
-        for y in range(self.lake_start_y, self.height):
-            for x in range(self.width):
-                if (x, y) in self.lake_pixels:
-                    # Lake water - darker toward edges/bottom
-                    depth = (y - self.lake_start_y) / max(1, self.lake_end_y - self.lake_start_y)
-                    lake_r = int(4 + (1 - depth) * 6)
-                    lake_g = int(6 + (1 - depth) * 10)
-                    lake_b = int(20 + (1 - depth) * 18)
-                    canvas.SetPixel(x, y, lake_r, lake_g, lake_b)
-                else:
-                    # Ground/shore - dark earth tones
-                    canvas.SetPixel(x, y, 10, 8, 5)
-        
-        # Star reflections in lake (only where lake exists)
-        for star in self.stars:
-            # Mirror y position into lake
+            # Star reflections in lake (Simple Point check)
+            # Assuming we know lake bounds roughly
             mirror_y = self.lake_start_y + (self.horizon_y - star['y'])
-            
             if self.lake_start_y <= mirror_y < self.lake_end_y:
-                # Ripple effect - slight horizontal wobble
                 ripple = math.sin(self.time * 2 + star['x'] * 0.2) * 1.5
                 mirror_x = int(star['x'] + ripple)
                 
-                # Only draw reflection if it's in the lake
-                if (mirror_x, int(mirror_y)) in self.lake_pixels:
-                    # Dimmer reflection
-                    twinkle = (math.sin(star['twinkle_phase'] + 1) * 0.2 + 0.5)
-                    brightness = star['brightness'] * twinkle * 0.4
-                    
-                    sr = int(200 * brightness)
-                    sg = int(200 * brightness)
-                    sb = int(180 * brightness)
-                    
-                    if 0 <= mirror_x < self.width:
-                        canvas.SetPixel(mirror_x, int(mirror_y), sr, sg, sb)
-        
-        # === MOUNTAIN SILHOUETTES WITH SNOW CAPS ===
-        for mountain_pixels in self.mountains:
-            for mx, my, is_snow in mountain_pixels:
-                if 0 <= mx < self.width and 0 <= my < self.height:
-                    if is_snow:
-                        # Gray snow (dark because it's night)
-                        canvas.SetPixel(mx, my, 45, 50, 55)
-                    else:
-                        # Dark mountain rock
-                        canvas.SetPixel(mx, my, 5, 5, 8)
-        
-        # === SMOKE (semi-transparent over background) ===
-        for smoke in self.smoke_particles:
-            sx, sy = int(smoke.x), int(smoke.y)
-            life_ratio = smoke.life / smoke.max_life
-            gray = int(40 * life_ratio)
-            
-            if 0 <= sx < self.width and 0 <= sy < self.height and gray > 3:
-                canvas.SetPixel(sx, sy, gray, gray, gray + 3)
-                # Expand smoke a bit
-                for ddx, ddy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
-                    nx, ny = sx + ddx, sy + ddy
-                    if 0 <= nx < self.width and 0 <= ny < self.height:
-                        canvas.SetPixel(nx, ny, gray // 2, gray // 2, gray // 2 + 2)
-        
-        # === WOOD LOGS ===
+                # Check if in lake (could use pixel check from BG, but let's just approximate)
+                # Actually we can read the pixel from the BG image to see if it's lake color!
+                # But that's slow. Let's just draw blindly if it's in bounds.
+                if 0 <= mirror_x < self.width:
+                     # Make reflection dimmer
+                    rr, rg, rb = r//2, g//2, b//2
+                    draw.point((mirror_x, mirror_y), fill=(rr, rg, rb))
+
+        # 2. Draw Logs
         for log in self.logs:
             for px, py in log.pixels:
                 if 0 <= px < self.width and 0 <= py < self.height:
-                    r, g, b = log.get_pixel_color(px, py, self.fire_center_x)
-                    canvas.SetPixel(px, py, r, g, b)
-        
-        # === FLAMES ===
+                    color = log.get_pixel_color(px, py, self.fire_center_x)
+                    draw.point((px, py), fill=color)
+
+        # 3. Draw Flames using Lines (Much faster than loops)
         for flame in self.flames:
-            self._draw_flame(canvas, flame)
-        
-        # Draw glow buffer (flames)
-        for (x, y), (r, g, b) in self.glow_buffer.items():
-            if 0 <= x < self.width and 0 <= y < self.height:
-                canvas.SetPixel(x, y, r, g, b)
-        
-        # === SPARKS on top ===
+             base_y = int(flame.base_y)
+             height = int(flame.current_height)
+             if height <= 0: continue
+             
+             for dy in range(height):
+                y = base_y - dy
+                if y < 0: continue
+                rel_h = dy / max(1, height)
+                
+                width_val = flame.get_current_width(rel_h)
+                color = flame.get_color_at_height(rel_h)
+                
+                slice_sway = math.sin(flame.sway_phase * 1.5 + dy * 0.25) * (rel_h * 1.5)
+                center_x = flame.x + slice_sway
+                
+                x1 = center_x - width_val / 2
+                x2 = center_x + width_val / 2
+                
+                # Draw horizontal line for this flame slice
+                # Use semi-transparent blending? PIL draw.line doesn't support alpha per se unless RGB
+                # We can just draw solid for now, or use a semi-transparent overlay image if we really want glow.
+                # Solid is 10x faster and looks fine for pixel art fire.
+                draw.line([(x1, y), (x2, y)], fill=color, width=1)
+
+        # 4. Smoke
+        for smoke in self.smoke_particles:
+            life_ratio = smoke.life / smoke.max_life
+            gray = int(40 * life_ratio)
+            if gray > 3:
+                # Draw small smoke blob
+                x, y = int(smoke.x), int(smoke.y)
+                draw.point((x,y), fill=(gray, gray, gray+3))
+                draw.point((x+1,y), fill=(gray//2, gray//2, gray//2))
+                draw.point((x,y-1), fill=(gray//2, gray//2, gray//2))
+
+        # 5. Sparks
         for spark in self.sparks:
-            sx, sy = int(spark.x), int(spark.y)
-            if 0 <= sx < self.width and 0 <= sy < self.height:
-                alpha = min(1.0, (spark.life / spark.max_life) * 1.5)
-                r = int(255 * alpha)
-                g = int(200 * alpha)
-                b = int(80 * alpha)
-                canvas.SetPixel(sx, sy, r, g, b)
+            alpha = min(1.0, (spark.life / spark.max_life) * 1.5)
+            r = int(255 * alpha)
+            g = int(200 * alpha)
+            b = int(80 * alpha)
+            draw.point((int(spark.x), int(spark.y)), fill=(r,g,b))
+
+        canvas.SetImage(img)

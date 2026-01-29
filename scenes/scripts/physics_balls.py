@@ -181,7 +181,13 @@ class PhysicsBalls(BaseScene):
         self.balls.append(Ball(x, y, radius, color, life))
 
     def draw(self, canvas):
-        # Clear handled by engine
+        # Clear is handled by engine, but we are drawing to an image now
+        from PIL import Image, ImageDraw
+        
+        # Create a new image for this frame (or reuse a buffer if we wanted to be super optimized, 
+        # but creating a 64x64 image is fast enough)
+        img = Image.new('RGB', (self.width, self.height), (0,0,0))
+        draw = ImageDraw.Draw(img)
         
         for ball in self.balls:
             # Calculate Faded Color
@@ -191,21 +197,15 @@ class PhysicsBalls(BaseScene):
             g = int(ball.color[1] * alpha)
             b = int(ball.color[2] * alpha)
             
-            # Draw Circle
-            # Simple bounding box scan for filled circle
-            min_x = int(ball.x - ball.radius)
-            max_x = int(ball.x + ball.radius)
-            min_y = int(ball.y - ball.radius)
-            max_y = int(ball.y + ball.radius)
+            # Draw Circle using PIL
+            # PIL's ellipse is much faster than python loops
+            bbox = [
+                ball.x - ball.radius, 
+                ball.y - ball.radius, 
+                ball.x + ball.radius, 
+                ball.y + ball.radius
+            ]
+            draw.ellipse(bbox, fill=(r,g,b))
             
-            r_sq = ball.radius * ball.radius
-            
-            for cy in range(min_y, max_y + 1):
-                for cx in range(min_x, max_x + 1):
-                    # Check bounds
-                    if 0 <= cx < self.width and 0 <= cy < self.height:
-                        # Check distance
-                        dx = cx - ball.x
-                        dy = cy - ball.y
-                        if dx*dx + dy*dy <= r_sq:
-                            canvas.SetPixel(cx, cy, r, g, b)
+        # Blit the entire image to the canvas at once
+        canvas.SetImage(img)

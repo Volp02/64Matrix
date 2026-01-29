@@ -1,12 +1,13 @@
 from app.core.base_scene import BaseScene
 import math
 import random
-
+from PIL import Image, ImageDraw
 
 class Kaleidoscope(BaseScene):
     """
     Mesmerizing kaleidoscope with symmetric, mirrored patterns.
     Features 6-fold or 8-fold symmetry with rotating geometric shapes.
+    Optimized for PIL.
     """
     
     def __init__(self, matrix, state_manager):
@@ -85,48 +86,39 @@ class Kaleidoscope(BaseScene):
         
         return (max(0, min(255, r)), max(0, min(255, g)), max(0, min(255, b)))
     
-    def _draw_shape_at(self, canvas, x, y, shape_type, size, color):
-        """Draw a shape centered at (x, y)"""
-        r, g, b = color
-        ix, iy = int(x), int(y)
+    def _draw_shape_at(self, draw, x, y, shape_type, size, color):
+        """Draw a shape centered at (x, y) using PIL"""
+        # Note: PIL coordinates can be floats, it handles subpixel positioning somewhat
         
         if shape_type == 'circle':
-            # Filled circle
-            radius = int(size)
-            for dy in range(-radius, radius + 1):
-                for dx in range(-radius, radius + 1):
-                    if dx*dx + dy*dy <= radius*radius:
-                        px, py = ix + dx, iy + dy
-                        if 0 <= px < self.width and 0 <= py < self.height:
-                            canvas.SetPixel(px, py, r, g, b)
+            radius = size
+            draw.ellipse([x - radius, y - radius, x + radius, y + radius], fill=color)
         
         elif shape_type == 'triangle':
-            # Simple triangle pointing outward
-            half = int(size)
-            for dy in range(-half, half + 1):
-                width = int((half - abs(dy)) * 0.8)
-                for dx in range(-width, width + 1):
-                    px, py = ix + dx, iy + dy
-                    if 0 <= px < self.width and 0 <= py < self.height:
-                        canvas.SetPixel(px, py, r, g, b)
+            # Simple triangle pointing outward relative to center would be best,
+            # but for now just pointing up/random is fine as they rotate
+            s = size
+            # Equilateral triangle points
+            p1 = (x, y - s)
+            p2 = (x - s*0.866, y + s*0.5)
+            p3 = (x + s*0.866, y + s*0.5)
+            draw.polygon([p1, p2, p3], fill=color)
         
         elif shape_type == 'diamond':
-            # Diamond shape
-            half = int(size)
-            for dy in range(-half, half + 1):
-                width = half - abs(dy)
-                for dx in range(-width, width + 1):
-                    px, py = ix + dx, iy + dy
-                    if 0 <= px < self.width and 0 <= py < self.height:
-                        canvas.SetPixel(px, py, r, g, b)
+            s = size
+            draw.polygon([
+                (x, y - s),
+                (x + s, y),
+                (x, y + s),
+                (x - s, y)
+            ], fill=color)
         
         elif shape_type == 'line':
-            # Radial line
-            length = int(size * 2)
-            for i in range(length):
-                px = ix + i
-                if 0 <= px < self.width and 0 <= iy < self.height:
-                    canvas.SetPixel(px, iy, r, g, b)
+            # Line radiating from center? Or just a line segment
+            # Let's simple draw a small line segment
+            l = size * 2
+            # Simple horizontal line (rotation handles the rest)
+            draw.line([(x - l/2, y), (x + l/2, y)], fill=color, width=1)
     
     def _polar_to_cartesian(self, r, theta):
         """Convert polar coordinates to cartesian, centered on display"""
@@ -170,29 +162,25 @@ class Kaleidoscope(BaseScene):
             }
     
     def draw(self, canvas):
-        # Dark background
-        canvas.Fill(5, 5, 15)
+        img = Image.new('RGB', (self.width, self.height), (5, 5, 15))
+        draw = ImageDraw.Draw(img)
         
-        # Draw radial gradient background for depth
-        for y in range(self.height):
-            for x in range(self.width):
-                dx = x - self.center_x
-                dy = y - self.center_y
-                dist = math.sqrt(dx*dx + dy*dy)
-                
-                # Subtle radial pattern in background
-                angle = math.atan2(dy, dx) + self.rotation * 0.5
-                pattern = math.sin(angle * self.symmetry + self.time) * 0.5 + 0.5
-                pattern *= math.sin(dist * 0.15 - self.time * 0.5) * 0.5 + 0.5
-                
-                # Very subtle background color
-                bg_r = int(10 + pattern * 15)
-                bg_g = int(5 + pattern * 10)
-                bg_b = int(20 + pattern * 20)
-                
-                canvas.SetPixel(x, y, bg_r, bg_g, bg_b)
-        
-        # Draw each shape with full symmetry
+        # 1. Background Pattern - simplified
+        # Instead of per-pixel trig, let's draw a few faint large circles/ellipses
+        # that rotate with time to simulate the background pattern
+        bg_phase = self.time * 0.5
+        for i in range(3):
+            rad = 20 + i * 15
+            offset_x = math.sin(bg_phase + i) * 10
+            offset_y = math.cos(bg_phase + i) * 10
+            bbox = [
+                self.center_x - rad + offset_x, self.center_y - rad + offset_y,
+                self.center_x + rad + offset_x, self.center_y + rad + offset_y
+            ]
+            # Faint color
+            draw.ellipse(bbox, outline=(10+i*5, 10, 20+i*5), width=2)
+
+        # 2. Draw each shape with full symmetry
         for shape in self.shapes:
             # Pulsing size
             pulse = math.sin(shape['pulse_phase']) * 0.3 + 1.0
@@ -211,22 +199,19 @@ class Kaleidoscope(BaseScene):
                 # Normal position
                 theta1 = shape['theta'] + segment_angle + self.rotation
                 x1, y1 = self._polar_to_cartesian(shape['r'], theta1)
-                self._draw_shape_at(canvas, x1, y1, shape['type'], size, color)
+                self._draw_shape_at(draw, x1, y1, shape['type'], size, color)
                 
                 # Mirrored position (flip within segment)
                 theta2 = -shape['theta'] + segment_angle + self.rotation
                 x2, y2 = self._polar_to_cartesian(shape['r'], theta2)
-                self._draw_shape_at(canvas, x2, y2, shape['type'], size, color)
+                self._draw_shape_at(draw, x2, y2, shape['type'], size, color)
         
-        # Draw center glow
-        for dy in range(-4, 5):
-            for dx in range(-4, 5):
-                dist = math.sqrt(dx*dx + dy*dy)
-                if dist < 4:
-                    brightness = 1.0 - dist / 4
-                    # Cycling center color
-                    center_color = self._get_color(int(self.time * 2) % len(self.base_colors), brightness)
-                    px = int(self.center_x + dx)
-                    py = int(self.center_y + dy)
-                    if 0 <= px < self.width and 0 <= py < self.height:
-                        canvas.SetPixel(px, py, center_color[0], center_color[1], center_color[2])
+        # 3. Center Glow
+        # Simple gradient circle
+        center_color = self._get_color(int(self.time * 2) % len(self.base_colors), 1.0)
+        draw.ellipse(
+            [self.center_x - 3, self.center_y - 3, self.center_x + 3, self.center_y + 3],
+            fill=center_color
+        )
+        
+        canvas.SetImage(img)

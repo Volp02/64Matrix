@@ -1,6 +1,7 @@
 from app.core.base_scene import BaseScene
 import random
 import math
+from PIL import Image, ImageDraw
 
 class Splash:
     def __init__(self, x, y, color):
@@ -13,26 +14,6 @@ class Splash:
     def update(self, dt):
         self.life -= dt * 4.0 # Fast fade
         self.radius += dt * 5.0
-        
-    def draw(self, canvas):
-        if self.life <= 0: return
-        
-        # Simple small expanding ring or just pixels
-        r, g, b = self.color
-        # Fade color
-        r = int(r * self.life)
-        g = int(g * self.life)
-        b = int(b * self.life)
-        
-        rad = int(self.radius)
-        # Draw pixels around center
-        # Splash is small, usually just 1 or 2 px out
-        if rad == 0:
-            canvas.SetPixel(int(self.x), int(self.y), r, g, b)
-        else:
-            # Draw Left/Right/Up small droplets
-            canvas.SetPixel(int(self.x - rad), int(self.y - 1), r, g, b)
-            canvas.SetPixel(int(self.x + rad), int(self.y - 1), r, g, b)
 
 class Rain(BaseScene):
     def __init__(self, matrix, state_manager):
@@ -42,44 +23,7 @@ class Rain(BaseScene):
         self.width = matrix.width
         self.height = matrix.height
         
-        # 1. Generate City Skyline (Silhouette)
-        # Horizon is at Y=49 (Lowered by 4 pixels from 45)
-        horizon = 49
-        self.skyline = [] # List of (x, y_start, y_end, color)
-        
-        current_x = 0
-        while current_x < self.width:
-            # Building width
-            w = random.randint(3, 8)
-            # Building height (top Y)
-            h = random.randint(15, 45) # Taller buildings
-            
-            # Add building columns
-            for bx in range(current_x, min(current_x + w, self.width)):
-                # Wall
-                for by in range(h, horizon):
-                    color = (0, 0, 5) # Almost black
-                    
-                    # Random window?
-                    if random.random() < 0.05 and bx % 2 == 0 and by % 3 == 0:
-                         color = (50, 50, 20) # Dim yellow light
-                         
-                    self.skyline.append((bx, by, color))
-            
-            current_x += w
-            
-        # 2. Generate Street Texture (Darker, Less Texture)
-        self.street_pixels = []
-        for y in range(horizon, self.height):
-            for x in range(self.width):
-                # Dark Grey, very smooth
-                base = 20
-                var = random.randint(-2, 2) # Minimal noise
-                val = max(0, min(255, base + var))
-                color = (val, val, val + 5) 
-                self.street_pixels.append((x, y, color))
-                
-        # 3. Generate Clouds (Background)
+        # 3. Generate Clouds (Dynamic)
         self.clouds = []
         for _ in range(5):
             self.clouds.append({
@@ -89,6 +33,42 @@ class Rain(BaseScene):
                 'h': random.uniform(10, 20),
                 'speed': random.uniform(2.0, 5.0)
             })
+            
+        # Pre-render static background (Sky + Skyline + Street)
+        self.background_img = self._prerender_background()
+
+    def _prerender_background(self):
+        """Pre-render static elements to a PIL Image"""
+        img = Image.new('RGB', (self.width, self.height), (0, 0, 15)) # Sky color
+        draw = ImageDraw.Draw(img)
+        pixels = img.load()
+        
+        # 1. Generate City Skyline (Silhouette)
+        horizon = 49
+        current_x = 0
+        while current_x < self.width:
+            w = random.randint(3, 8)
+            h = random.randint(15, 45) # Taller buildings
+            
+            for bx in range(current_x, min(current_x + w, self.width)):
+                for by in range(h, horizon):
+                    color = (0, 0, 5) # Almost black
+                    # Random window
+                    if random.random() < 0.05 and bx % 2 == 0 and by % 3 == 0:
+                         color = (50, 50, 20) # Dim yellow light
+                    pixels[bx, by] = color
+            current_x += w
+            
+        # 2. Generate Street Texture
+        for y in range(horizon, self.height):
+            for x in range(self.width):
+                base = 20
+                var = random.randint(-2, 2)
+                val = max(0, min(255, base + var))
+                color = (val, val, val + 5) 
+                pixels[x, y] = color
+                
+        return img
 
     def update(self, dt):
         # Update Clouds
@@ -155,47 +135,55 @@ class Rain(BaseScene):
         })
 
     def draw(self, canvas):
-        canvas.Clear()
-        
-        # 1. Sky (Deep Midnight Blue)
-        canvas.Fill(0, 0, 15)
+        # Start with static background
+        img = self.background_img.copy()
+        draw = ImageDraw.Draw(img)
         
         # 1.5 Clouds (Barely visible)
-        cloud_color = (15, 15, 30) # Slightly lighter/greyer than sky
+        cloud_color = (15, 15, 30)
         for c in self.clouds:
-            # Simple ellipse
-            cx, cy = int(c['x']), int(c['y'])
-            rx, ry = int(c['w']/2), int(c['h']/2)
+            cx, cy = c['x'], c['y']
+            rx, ry = c['w']/2, c['h']/2
+            # Bounding box for ellipse
+            bbox = [cx - rx, cy - ry, cx + rx, cy + ry]
             
-            # Bounding box optimization
-            for y in range(cy-ry, cy+ry):
-                for x in range(cx-rx, cx+rx):
-                    # Check ellipse
-                    if ((x-cx)**2)/(rx**2) + ((y-cy)**2)/(ry**2) <= 1.0:
-                        # Wrap x for drawing? simplest is just draw if visible
-                        # Our update loop wraps, so just draw normal check boundaries
-                        draw_x = x % self.width # Wrap for seamless
-                        if 0 <= y < self.height:
-                             canvas.SetPixel(draw_x, y, *cloud_color)
-        
-        # 2. City Silhouette
-        for p in self.skyline:
-             canvas.SetPixel(p[0], p[1], p[2][0], p[2][1], p[2][2])
-        
-        # 3. Street (Bottom)
-        for p in self.street_pixels:
-            canvas.SetPixel(p[0], p[1], p[2][0], p[2][1], p[2][2])
-        
-        # 4. Rain & Splashes
+            # Since update logic wraps x, we need to draw potentially twice for seamless wrapping
+            # Or just rely on the fact that bbox can handle off-screen coords
+            draw.ellipse(bbox, fill=cloud_color)
+            
+            # Wrap handling simply
+            if c['x'] + rx > self.width:
+                # Draw wrap-around part
+                bbox_wrap = [cx - rx - self.width, cy - ry, cx + rx - self.width, cy + ry]
+                draw.ellipse(bbox_wrap, fill=cloud_color)
+
+        # 4. Rain Matches
         for d in self.drops:
             x = int(d['x'])
             y = int(d['y'])
             l = d['length']
-            r, g, b = d['color']
-            for i in range(l):
-                draw_y = y - i
-                if 0 <= draw_y < self.height:
-                    canvas.SetPixel(x, int(draw_y), r, g, b)
+            color = d['color']
+            
+            # Simple line
+            draw.line([(x, y), (x, y - l)], fill=color, width=1)
                     
+        # 5. Splashes
         for s in self.splashes:
-            s.draw(canvas)
+            if s.life <= 0: continue
+            
+            r, g, b = s.color
+            # Fade color
+            r = int(r * s.life)
+            g = int(g * s.life)
+            b = int(b * s.life)
+            color = (r, g, b)
+            
+            rad = int(s.radius)
+            if rad == 0:
+                draw.point((int(s.x), int(s.y)), fill=color)
+            else:
+                # Small droplet spray
+                draw.point((int(s.x - rad), int(s.y - 1)), fill=color)
+                draw.point((int(s.x + rad), int(s.y - 1)), fill=color)
+
+        canvas.SetImage(img)

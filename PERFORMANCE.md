@@ -1,6 +1,48 @@
-# Performance Optimization Guide
+## Performance Optimization Guide
 
-This document explains the performance optimizations required for stable RGB LED matrix operation on Raspberry Pi.
+### ⚡ Why was my script slow? (The "SetPixel" Trap)
+
+**The Problem:**
+Python is an interpreted language. Calling a function like `canvas.SetPixel(x, y, r, g, b)` has a small overhead. But if you call it **4096 times** (64x64 pixels) every frame (30 times a second), that's **122,880 function calls per second**.
+This overwhelms the CPU, causing the framerate to drop from 30 FPS to ~8 FPS.
+
+**The Solution: Vectorized Drawing (PIL)**
+Instead of setting pixels one by one in Python, we use the **Python Imaging Library (PIL)**.
+PIL is written in **C**. When you tell it to `draw.ellipse()` or `img.paste()`, it loops over the pixels **in C**, which is 100x faster than Python.
+
+**❌ SLOW (Pure Python Loops)**
+
+```python
+# Don't do this!
+for x in range(64):
+    for y in range(64):
+        canvas.SetPixel(x, y, 255, 0, 0) # 4096 slow calls
+```
+
+**✅ FAST (PIL Image)**
+
+```python
+from PIL import Image, ImageDraw
+# Create image once
+img = Image.new('RGB', (64, 64), (255, 0, 0)) # 1 fast C call
+# Send to matrix
+canvas.SetImage(img)
+```
+
+### 🧠 Threading & Architecture
+
+The application runs in two main threads:
+
+1.  **Web Server Thread (FastAPI)**: Handles API requests, serves the dashboard.
+2.  **Engine Thread**: The "Heartbeat" of the matrix. It runs `engine.run_threaded()`.
+
+This separation ensures that:
+
+- The web UI stays responsive even if the animation lags.
+- The animation stays smooth even if the web server is busy.
+- Python's GIL (Global Interpreter Lock) is released during the heavy C++ matrix operations, allowing true parallelism.
+
+### Hardware Tuning
 
 ## Critical Optimizations
 

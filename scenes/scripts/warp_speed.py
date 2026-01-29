@@ -1,12 +1,13 @@
 from app.core.base_scene import BaseScene
 import math
 import random
-
+from PIL import Image, ImageDraw
 
 class WarpSpeed(BaseScene):
     """
     Warp speed effect with stars accelerating from center toward camera.
     Features motion blur streaks and tunnel effect.
+    Optimized to use PIL for rendering.
     """
     
     def __init__(self, matrix, state_manager):
@@ -104,14 +105,13 @@ class WarpSpeed(BaseScene):
         for star in stars_to_remove:
             self.stars.remove(star)
     
-    def _draw_star_with_streak(self, canvas, star):
-        """Draw a star with motion blur streak"""
-        x = int(star['x'])
-        y = int(star['y'])
-        size = int(star['size'])
+    def _draw_star_with_streak(self, draw, star):
+        """Draw a star with motion blur streak using PIL"""
+        x = star['x']
+        y = star['y']
+        size = star['size']
         
         # Calculate streak direction (opposite of movement direction)
-        # Streak points back toward center
         dx = self.center_x - star['x']
         dy = self.center_y - star['y']
         dist_to_center = math.sqrt(dx*dx + dy*dy)
@@ -124,95 +124,42 @@ class WarpSpeed(BaseScene):
             # Streak length based on speed/distance
             streak_length = min(15, star['distance'] * 0.3)
             
-            # Draw streak (motion blur) - blue/cyan
-            streak_start_x = x
-            streak_start_y = y
-            streak_end_x = int(x - dx * streak_length)
-            streak_end_y = int(y - dy * streak_length)
+            # Streak endpoints
+            end_x = x - dx * streak_length
+            end_y = y - dy * streak_length
             
-            # Draw streak line with fading intensity (bright at star, dark towards center)
-            self._draw_fading_line(
-                canvas,
-                streak_start_x, streak_start_y,  # Start at star (bright)
-                streak_end_x, streak_end_y,      # End towards center (dark)
-                (50, 100, 200),  # Blue streak color
-                0.4  # Streak opacity
-            )
+            # Draw streak (solid color is much faster and looks fine for motion blur)
+            # Fading can be simulated by just being dimmer than the star
+            streak_color = (25, 50, 100) # Dark blue
+            
+            # Draw line
+            draw.line([(x, y), (end_x, end_y)], fill=streak_color, width=1)
         
         # Draw star (white/yellow)
         r, g, b = star['color']
         
-        # Brightness based on distance (closer to center = brighter, fades as it moves away)
-        # Start bright at center (distance ~0), fade to ~10% at edges
-        # Use inverse relationship: brightness decreases with distance
-        max_dist = 35.0  # Approximate max distance before off-screen
+        # Distance fade
+        max_dist = 35.0
         brightness = max(0.1, 1.0 - (star['distance'] / max_dist))
         r = int(r * brightness)
         g = int(g * brightness)
         b = int(b * brightness)
+        color = (r, g, b)
         
-        # Draw star as small circle or point
-        if size <= 1:
-            # Single pixel
-            if 0 <= x < self.width and 0 <= y < self.height:
-                canvas.SetPixel(x, y, r, g, b)
-        else:
-            # Small circle
-            size_int = int(size)
-            for dy in range(-size_int, size_int + 1):
-                for dx in range(-size_int, size_int + 1):
-                    if dx*dx + dy*dy <= size_int * size_int:
-                        px = x + dx
-                        py = y + dy
-                        if 0 <= px < self.width and 0 <= py < self.height:
-                            canvas.SetPixel(px, py, r, g, b)
-    
-    def _draw_fading_line(self, canvas, x1, y1, x2, y2, color, base_alpha):
-        """Draw a line with fading intensity from start to end"""
-        # Bresenham's line algorithm with fading
-        dx = abs(x2 - x1)
-        dy = abs(y2 - y1)
-        sx = 1 if x1 < x2 else -1
-        sy = 1 if y1 < y2 else -1
-        err = dx - dy
-        
-        x, y = x1, y1
-        total_steps = max(dx, dy)
-        step = 0
-        
-        r_base, g_base, b_base = color
-        
-        while True:
-            if 0 <= x < self.width and 0 <= y < self.height:
-                # Fade from start (brighter) to end (darker towards center)
-                fade = 1.0 - (step / max(1, total_steps))  # Reverse: 1.0 at start, 0.0 at end
-                alpha = base_alpha * (0.1 + fade * 0.9)  # Fade from 100% to 10% of base_alpha
-                
-                r = int(r_base * alpha)
-                g = int(g_base * alpha)
-                b = int(b_base * alpha)
-                
-                canvas.SetPixel(x, y, r, g, b)
-            
-            if x == x2 and y == y2:
-                break
-            
-            step += 1
-            e2 = 2 * err
-            if e2 > -dy:
-                err -= dy
-                x += sx
-            if e2 < dx:
-                err += dx
-                y += sy
-    
+        # Draw star
+        radius = size / 2
+        draw.ellipse([x-radius, y-radius, x+radius, y+radius], fill=color)
+
     def draw(self, canvas):
         # Deep space background (very dark)
-        canvas.Fill(0, 0, 5)
+        img = Image.new('RGB', (self.width, self.height), (0, 0, 5))
+        draw = ImageDraw.Draw(img)
         
         # Draw stars with streaks (sorted by distance for proper layering)
         # Draw farther stars first, then closer ones
         sorted_stars = sorted(self.stars, key=lambda s: s['distance'])
         
         for star in sorted_stars:
-            self._draw_star_with_streak(canvas, star)
+            self._draw_star_with_streak(draw, star)
+            
+        canvas.SetImage(img)

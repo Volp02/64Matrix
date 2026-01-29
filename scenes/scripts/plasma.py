@@ -20,43 +20,45 @@ class Plasma(BaseScene):
         self.time_tracker += dt
 
     def draw(self, canvas):
-        t = self.time_tracker
-        w = self.width
-        h = self.height
+        from PIL import Image
         
-        scale1 = 0.05
-        scale2 = 0.03
-        scale3 = 0.07
+        t = self.time_tracker
+        # Render at low resolution (1/4 size) for performance
+        low_w, low_h = 16, 16
+        
+        scale1 = 0.2  # Adjusted scales for lower res
+        scale2 = 0.12
+        scale3 = 0.28
         
         # Pre-calculate row and column components
-        # v1 depends only on x
-        v1_row = [math.sin(x * scale1 + t) for x in range(w)]
+        v1_row = [math.sin(x * scale1 + t) for x in range(low_w)]
+        v2_col = [math.sin((y * scale2) + t * 0.5) for y in range(low_h)]
         
-        # v2 depends only on y
-        v2_col = [math.sin((y * scale2) + t * 0.5) for y in range(h)]
-        
-        # v4 helpers
         sin_t2 = math.sin(t/2)
         cos_t3 = math.cos(t/3)
         
-        for y in range(h):
+        pixels = []
+        
+        for y in range(low_h):
             row_v2 = v2_col[y]
-            row_dist = self.dist_grid[y]
             y_part_v4 = y * cos_t3
             
-            for x in range(w):
-                # Component 1 (Cached)
+            for x in range(low_w):
+                # Component 1
                 v1 = v1_row[x]
                 
-                # Component 2 (Cached)
+                # Component 2
                 v2 = row_v2
                 
-                # Component 3 (Distance cached)
-                v3 = math.sin(row_dist[x] * scale3 - t * 1.5)
+                # Component 3 (Distance approx)
+                # Recalculate dist on fly for low res is fast enough, no need for cache
+                dx = x - 8 # centered
+                dy = y - 8
+                dist = math.sqrt(dx*dx + dy*dy)
+                v3 = math.sin(dist * scale3 - t * 1.5)
                 
-                # Component 4 (Simplified)
-                # v4 = math.sin((x * math.sin(t/2) + y * math.cos(t/3)) * 0.04 + t)
-                v4 = math.sin((x * sin_t2 + y_part_v4) * 0.04 + t)
+                # Component 4
+                v4 = math.sin((x * sin_t2 + y_part_v4) * 0.15 + t)
 
                 # Sum components
                 v = (v1 + v2 + v3 + v4) / 4.0
@@ -64,12 +66,18 @@ class Plasma(BaseScene):
                 # Map to color (0 to 1)
                 val = (v + 1.0) / 2.0
                 
-                # Simple palette mapping (performant)
-                # R: shifted 0
-                # G: shifted 1/3
-                # B: shifted 2/3
+                # Simple palette mapping
                 r = int((math.sin(val * math.pi * 2 + t) + 1) * 127.5)
                 g = int((math.sin(val * math.pi * 2 + t + 2.09) + 1) * 127.5)
                 b = int((math.sin(val * math.pi * 2 + t + 4.18) + 1) * 127.5)
                 
-                canvas.SetPixel(x, y, r, g, b)
+                pixels.append((r, g, b))
+                
+        # Create image from pixels
+        img_low = Image.new('RGB', (low_w, low_h))
+        img_low.putdata(pixels)
+        
+        # Upscale with bicubic interpolation (smooths out the blocks)
+        img_high = img_low.resize((self.width, self.height), Image.BICUBIC)
+        
+        canvas.SetImage(img_high)
