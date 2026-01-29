@@ -36,11 +36,36 @@ class MatrixDriver:
         self._brightness = brightness
         self.options.brightness = brightness
         
-        # If emulated, we might want to relax some hardware specific settings or keep them as is
-        # The emulator usually ignores hardware specific options safely
-        self.options.gpio_slowdown = 4  # Aggressive slowdown to fix flickering
-        self.options.pwm_lsb_nanoseconds = 130 # Reduces low-brightness ghosting
-        self.options.scan_mode = 0 # Standard progressive scan
+        # === Anti-Flicker & Performance Settings ===
+        # GPIO slowdown: Higher values = more stable timing but lower refresh rate
+        # Pi4: typically 2-4, Pi3: typically 1-2
+        self.options.gpio_slowdown = 4
+        
+        # PWM settings for flicker reduction
+        self.options.pwm_bits = 11  # Higher = smoother colors (1-11), default 11
+        self.options.pwm_lsb_nanoseconds = 130  # Reduces low-brightness ghosting
+        self.options.pwm_dither_bits = 0  # Disable dithering for cleaner output
+        
+        # Scan mode: 0=progressive, 1=interlaced (try 1 if flickering persists)
+        self.options.scan_mode = 0
+        
+        # Limit refresh rate to reduce flicker on some panels
+        # Set to 0 to disable, or try 120-240 Hz
+        self.options.limit_refresh_rate_hz = 0
+        
+        # Show refresh rate in console for debugging (set False in production)
+        self.options.show_refresh_rate = False
+        
+        # Multiplexing: Auto-detect works for most panels
+        # Options: 0=direct, 1=stripe, 2=checker, etc.
+        self.options.multiplexing = 0
+        
+        # Row address type: 0=direct, 1=AB-addressed panels
+        self.options.row_address_type = 0
+        
+        # Disable hardware pulsing if suffering from flicker (uses more CPU)
+        # This can help on some panels but increases CPU usage
+        self.options.disable_hardware_pulsing = False
         
         self.matrix = RGBMatrix(options=self.options)
         self._raw_canvas = self.matrix.CreateFrameCanvas()

@@ -188,9 +188,9 @@ When running in Docker, the container needs:
 Expected performance on Raspberry Pi 4:
 
 - **Refresh Rate**: 60-120 Hz (configurable)
-- **Frame Rate**: 30 FPS (application default)
-- **CPU Usage**: 15-30% (one core)
-- **Latency**: <16ms frame time
+- **Frame Rate**: 60 FPS (application default, previously 30)
+- **CPU Usage**: 20-40% (one core)
+- **Latency**: <16.7ms frame time (targeting 60 FPS)
 
 ## Additional Resources
 

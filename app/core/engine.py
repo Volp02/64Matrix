@@ -2,6 +2,7 @@ import time
 import logging
 import threading
 import io
+from collections import deque
 from PIL import Image
 
 logger = logging.getLogger(__name__)
@@ -11,7 +12,7 @@ class Engine:
         self.matrix = matrix_driver
         self.state_manager = state_manager
         self._running = False
-        self._target_fps = 30
+        self._target_fps = 60  # Target 60 FPS for smoother animations
         self._frame_duration = 1.0 / self._target_fps
         
         # Preview frame capture
@@ -20,8 +21,8 @@ class Engine:
         self._last_capture_time = 0
         self._preview_capture_interval = 0.2  # Capture every 200ms (5 FPS)
         
-        # FPS monitoring
-        self._frame_times = []  # Store recent frame times for rolling average
+        # FPS monitoring - use deque for O(1) append/pop performance
+        self._frame_times = deque(maxlen=120)  # Track ~2 seconds at 60 FPS
         self._fps_window = 2.0  # Calculate FPS over 2 second window
         self._last_fps_log = 0  # Last time we logged FPS warning
         self._fps_log_interval = 5.0  # Only log FPS warnings every 5 seconds
@@ -153,12 +154,13 @@ class Engine:
     
     def _update_fps_tracking(self, current_time):
         """Track frame times and calculate FPS, logging warnings if performance is poor."""
-        # Add current frame time
+        # Add current frame time - deque automatically drops old entries when full
         self._frame_times.append(current_time)
         
-        # Remove old frame times outside the window
+        # Remove old frame times outside the window (deque makes this efficient)
         cutoff_time = current_time - self._fps_window
-        self._frame_times = [t for t in self._frame_times if t > cutoff_time]
+        while self._frame_times and self._frame_times[0] < cutoff_time:
+            self._frame_times.popleft()
         
         # Calculate FPS (number of frames in the window / window duration)
         if len(self._frame_times) > 1:
@@ -166,8 +168,8 @@ class Engine:
             if time_span > 0:
                 self._current_fps = (len(self._frame_times) - 1) / time_span
                 
-                # Log warning if FPS is below 20 (but not too frequently)
-                if self._current_fps < 20.0:
+                # Log warning if FPS is below 40 (adjusted for 60 FPS target)
+                if self._current_fps < 40.0:
                     if current_time - self._last_fps_log >= self._fps_log_interval:
                         logger.warning(
                             f"⚠️  Low FPS detected: {self._current_fps:.1f} FPS "
